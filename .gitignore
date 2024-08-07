@@ -1,0 +1,37 @@
+### from https://github.com/github/gitignore/blob/main/Python.gitignore
+# Byte-compiled / optimized / DLL files
+*__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+*.egg-info/
+
+# Unit test / coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+.pytest_cache/
+cover/
+.ruff_cache
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+### files from dev utilities
+# local pre-commit hooks and direnv
+.pre-commit-config.yaml
+.envrc
+
+# IDE config folders
+.idea
+.vscode

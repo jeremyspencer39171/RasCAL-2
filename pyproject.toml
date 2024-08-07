@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rascal2"
+version = "0.0.0"
+dependencies = [
+  "RATapi",
+  "PyQt6",
+]
+description = "RasCAL2: GUI for Reflectivity Algorithm Toolbox (RAT)"
+readme = "README.md"
+license = {file = "LICENSE"}
+
+[project.urls]
+Documentation = "https://rascalsoftware.github.io/RAT/master/index.html"
+Repository = "https://github.com/RascalSoftware/RasCAL-2"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "UP", "B", "SIM", "I"]
+ignore = ["SIM108"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
