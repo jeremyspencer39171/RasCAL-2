@@ -1,0 +1,25 @@
+# Workflow file for slow tests & on multiple python versions
+name: Integration tests
+on:
+  pull_request_review:
+    types: [approved]
+  workflow_dispatch:  # <-- can be triggered manually!
+
+jobs:
+  integration-tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-13]
+        python-version: [3.10, 3.11, 3.12]
+    steps:
+      - name: Set up Python version ${{ matrix.version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.version }}
+      - name: Install package and requirements
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install .
+      - name: Run pytest
+        run: pytest -s tests/ --cov=rascal2 --cov-report=term
