@@ -25,5 +25,5 @@ jobs:
         if: runner.os == 'linux'
         uses: ./.github/actions/linux
       - name: Install and run tests (MacOS)
-        if: runner.os != 'linux
+        if: runner.os != 'linux'
         uses: ./.github/actions/windows-mac
