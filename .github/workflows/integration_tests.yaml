@@ -2,24 +2,31 @@
 name: Integration tests
 on:
   pull_request_review:
-    types: [approved]
+    types: [submitted]
   workflow_dispatch:  # <-- can be triggered manually!
 
 jobs:
   integration-tests:
+    if: github.event.review.state == 'approved'
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-13]
-        python-version: [3.10, 3.11, 3.12]
+        python-version: ["3.10", "3.12"]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Set up Python version ${{ matrix.version }}
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4      
+      - name: Set up Conda environment from environment.yaml
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: ${{ matrix.version }}
-      - name: Install package and requirements
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-          pip install .
-      - name: Run pytest
-        run: pytest -s tests/ --cov=rascal2 --cov-report=term
+          environment-file: environment.yaml
+          auto-activate-base: false
+          python-version: ${{ matrix.version }}  # this overwrites python version in environment.yaml
+      - name: Install and run tests (Linux)
+        if: runner.os == 'linux'
+        uses: ./.github/actions/linux
+      - name: Install and run tests (MacOS)
+        if: runner.os == 'macos'
+        uses: ./.github/actions/macos
+      - name: Install and run tests (Windows)
+        if: runner.os == 'windows'
+        uses: ./.github/actions/windows
