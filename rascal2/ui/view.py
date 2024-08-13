@@ -21,6 +21,13 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.undo_view.setWindowIcon(window_icon)
         self.undo_view.setAttribute(QtCore.Qt.WidgetAttribute.WA_QuitOnClose, False)
 
+        self.mdi = QtWidgets.QMdiArea()
+        # TODO replace the widgets below
+        self.plotting_widget = QtWidgets.QWidget()
+        self.terminal_widget = QtWidgets.QWidget()
+        self.controls_widget = QtWidgets.QWidget()
+        self.project_widget = QtWidgets.QWidget()
+
         self.createActions()
         self.createMenus()
         self.createToolBar()
@@ -42,6 +49,11 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.exit_action.setShortcut(QtGui.QKeySequence.StandardKey.Quit)
         self.exit_action.triggered.connect(self.close)
 
+        # Window menu actions
+        self.tile_windows_action = QtGui.QAction("Tile Windows", self)
+        self.tile_windows_action.setStatusTip("Arrange windows in the default grid")
+        self.tile_windows_action.triggered.connect(self.mdi.tileSubWindows)
+
     def createMenus(self):
         """Creates the main menu and sub menus"""
         main_menu = self.menuBar()
@@ -54,7 +66,8 @@ class MainWindowView(QtWidgets.QMainWindow):
 
         # edit_menu = main_menu.addMenu("&Edit")
         # tools_menu = main_menu.addMenu("&Tools")
-        # windows_menu = main_menu.addMenu("&Windows")
+        windows_menu = main_menu.addMenu("&Windows")
+        windows_menu.addAction(self.tile_windows_action)
         # help_menu = main_menu.addMenu("&Help")
 
     def createToolBar(self):
@@ -69,3 +82,22 @@ class MainWindowView(QtWidgets.QMainWindow):
         """Creates the status bar"""
         sb = QtWidgets.QStatusBar()
         self.setStatusBar(sb)
+
+    def setupMDI(self):
+        """Creates the multi-document interface"""
+        widgets = {
+            "Plots": self.plotting_widget,
+            "Project": self.project_widget,
+            "Terminal": self.terminal_widget,
+            "Fitting Controls": self.controls_widget,
+        }
+
+        for title, widget in reversed(widgets.items()):
+            widget.setWindowTitle(title)
+            window = self.mdi.addSubWindow(
+                widget, QtCore.Qt.WindowType.WindowMinMaxButtonsHint | QtCore.Qt.WindowType.WindowTitleHint
+            )
+            window.setWindowTitle(title)
+        # TODO implement user save for layouts, this should default to use saved layout and fallback to tile
+        self.mdi.tileSubWindows()
+        self.setCentralWidget(self.mdi)
