@@ -27,4 +27,5 @@ class MainWindowPresenter:
 
         self.model.createProject(name, save_path)
         # TODO if the view's central widget is the startup one then setup MDI else reset the widgets.
+        self.view.init_settings_and_log(save_path)
         self.view.setupMDI()

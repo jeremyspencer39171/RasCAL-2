@@ -1,6 +1,8 @@
+import pathlib
+
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from rascal2.config import path_for
+from rascal2.config import path_for, setup_logging, setup_settings
 
 from .presenter import MainWindowPresenter
 
@@ -101,3 +103,21 @@ class MainWindowView(QtWidgets.QMainWindow):
         # TODO implement user save for layouts, this should default to use saved layout and fallback to tile
         self.mdi.tileSubWindows()
         self.setCentralWidget(self.mdi)
+
+    def init_settings_and_log(self, save_path: str):
+        """Initialise settings and logging for the project.
+
+        Parameters
+        ----------
+        save_path : str
+            The save path for the project.
+
+        """
+        proj_path = pathlib.Path(save_path)
+        self.settings = setup_settings(proj_path)
+        log_path = pathlib.Path(self.settings.log_path)
+        if not log_path.is_absolute():
+            log_path = proj_path / log_path
+
+        log_path.parents[0].mkdir(parents=True, exist_ok=True)
+        self.logging = setup_logging(log_path, level=self.settings.log_level)
