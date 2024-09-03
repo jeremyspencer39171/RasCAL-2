@@ -3,6 +3,8 @@ import pathlib
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from rascal2.config import path_for, setup_logging, setup_settings
+from rascal2.dialogs.project_dialog import ProjectDialog
+from rascal2.widgets.startup_widget import StartUpWidget
 
 from .presenter import MainWindowPresenter
 
@@ -14,6 +16,8 @@ class MainWindowView(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.setWindowTitle(MAIN_WINDOW_TITLE)
+
         self.presenter = MainWindowPresenter(self)
         window_icon = QtGui.QIcon(path_for("logo.png"))
 
@@ -35,16 +39,61 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.createToolBar()
         self.createStatusBar()
 
-        self.setWindowTitle(MAIN_WINDOW_TITLE)
         self.setMinimumSize(1024, 900)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
 
+        self.startup_dlg, self.project_dlg = StartUpWidget(self), ProjectDialog(self)
+
+        self.setCentralWidget(self.startup_dlg)
+
+    def showProjectDialog(self):
+        """Shows the project dialog to create a new project"""
+        if self.startup_dlg.isVisible():
+            self.startup_dlg.hide()
+        self.project_dlg = ProjectDialog(self)
+        if (
+            self.project_dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted
+            and self.centralWidget() is self.startup_dlg
+        ):
+            self.startup_dlg.show()
+
     def createActions(self):
         """Creates the menu and toolbar actions"""
+
         self.new_project_action = QtGui.QAction("&New", self)
         self.new_project_action.setStatusTip("Create a new project")
-        self.new_project_action.setIcon(QtGui.QIcon(path_for("file.png")))
+        self.new_project_action.setIcon(QtGui.QIcon(path_for("new-project.png")))
+        self.new_project_action.triggered.connect(self.showProjectDialog)
         self.new_project_action.setShortcut(QtGui.QKeySequence.StandardKey.New)
+
+        self.open_project_action = QtGui.QAction("&Open", self)
+        self.open_project_action.setStatusTip("Open an existing project")
+        self.open_project_action.setIcon(QtGui.QIcon(path_for("browse-dark.png")))
+        self.open_project_action.setShortcut(QtGui.QKeySequence.StandardKey.Open)
+
+        self.save_project_action = QtGui.QAction("&Save", self)
+        self.save_project_action.setStatusTip("Save project")
+        self.save_project_action.setIcon(QtGui.QIcon(path_for("save-project.png")))
+        self.save_project_action.setShortcut(QtGui.QKeySequence.StandardKey.Save)
+
+        self.undo_action = QtGui.QAction("&Undo", self)
+        self.undo_action.setStatusTip("Undo")
+        self.undo_action.setIcon(QtGui.QIcon(path_for("undo.png")))
+        self.undo_action.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
+
+        self.redo_action = QtGui.QAction("&Redo", self)
+        self.redo_action.setStatusTip("Redo")
+        self.redo_action.setIcon(QtGui.QIcon(path_for("redo.png")))
+        self.redo_action.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
+
+        self.export_plots_action = QtGui.QAction("Export", self)
+        self.export_plots_action.setStatusTip("Export Plots")
+        self.export_plots_action.setIcon(QtGui.QIcon(path_for("export-plots.png")))
+
+        self.open_help_action = QtGui.QAction("&Help", self)
+        self.open_help_action.setStatusTip("Open Documentation")
+        self.open_help_action.setIcon(QtGui.QIcon(path_for("help.png")))
+        self.open_help_action.triggered.connect(self.openDocs)
 
         self.exit_action = QtGui.QAction("E&xit", self)
         self.exit_action.setStatusTip(f"Quit {MAIN_WINDOW_TITLE}")
@@ -54,6 +103,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         # Window menu actions
         self.tile_windows_action = QtGui.QAction("Tile Windows", self)
         self.tile_windows_action.setStatusTip("Arrange windows in the default grid")
+        self.tile_windows_action.setIcon(QtGui.QIcon(path_for("tile.png")))
         self.tile_windows_action.triggered.connect(self.mdi.tileSubWindows)
 
     def createMenus(self):
@@ -67,18 +117,36 @@ class MainWindowView(QtWidgets.QMainWindow):
         file_menu.addAction(self.exit_action)
 
         # edit_menu = main_menu.addMenu("&Edit")
-        # tools_menu = main_menu.addMenu("&Tools")
+
+        tools_menu = main_menu.addMenu("&Tools")
+        tools_menu.addAction(self.undo_action)
+        tools_menu.addAction(self.redo_action)
+
         windows_menu = main_menu.addMenu("&Windows")
         windows_menu.addAction(self.tile_windows_action)
-        # help_menu = main_menu.addMenu("&Help")
+
+        help_menu = main_menu.addMenu("&Help")
+        help_menu.addAction(self.open_help_action)
+
+    def openDocs(self):
+        """Opens the documentation"""
+        url = QtCore.QUrl("https://rascalsoftware.github.io/RAT-Docs/dev/index.html")
+        QtGui.QDesktopServices.openUrl(url)
 
     def createToolBar(self):
         """Creates the toolbar"""
-        toolbar = self.addToolBar("ToolBar")
-        toolbar.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.PreventContextMenu)
-        toolbar.setMovable(False)
+        self.toolbar = self.addToolBar("ToolBar")
+        self.toolbar.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.PreventContextMenu)
+        self.toolbar.setMovable(False)
+        self.toolbar.setEnabled(False)
 
-        toolbar.addAction(self.new_project_action)
+        self.toolbar.addAction(self.new_project_action)
+        self.toolbar.addAction(self.open_project_action)
+        self.toolbar.addAction(self.save_project_action)
+        self.toolbar.addAction(self.undo_action)
+        self.toolbar.addAction(self.redo_action)
+        self.toolbar.addAction(self.export_plots_action)
+        self.toolbar.addAction(self.open_help_action)
 
     def createStatusBar(self):
         """Creates the status bar"""
@@ -102,6 +170,7 @@ class MainWindowView(QtWidgets.QMainWindow):
             window.setWindowTitle(title)
         # TODO implement user save for layouts, this should default to use saved layout and fallback to tile
         self.mdi.tileSubWindows()
+        self.startup_dlg = self.takeCentralWidget()
         self.setCentralWidget(self.mdi)
 
     def init_settings_and_log(self, save_path: str):

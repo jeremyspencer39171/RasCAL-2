@@ -33,11 +33,11 @@ To install pytest use
 
 Run the tests and generate a coverage report with
 
-    pytest tests --cov=RAT
+    pytest tests --cov=rascal2
 
 The coverage report can be saved to the directory htmlcov by running the tests with
 
-    pytest tests --cov-report html --cov=RAT
+    pytest tests --cov-report html --cov=rascal2
 
 For information on other coverage report formats, see https://pytest-cov.readthedocs.io/en/latest/reporting.html
 

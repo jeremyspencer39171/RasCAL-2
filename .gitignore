@@ -35,3 +35,9 @@ venv.bak/
 # IDE config folders
 .idea
 .vscode
+
+# OS specific files
+**/.DS_Store
+
+# log files
+**/logs/
