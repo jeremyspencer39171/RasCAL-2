@@ -76,6 +76,7 @@ def setup_logging(log_path: str | PathLike, level: int = logging.INFO) -> loggin
     logger.setLevel(level)
 
     # TODO add console print handler when console is added
+    # https://github.com/RascalSoftware/RasCAL-2/issues/5
     log_filehandler = logging.FileHandler(path)
     logger.addHandler(log_filehandler)
 

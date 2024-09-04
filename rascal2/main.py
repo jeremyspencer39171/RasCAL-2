@@ -17,6 +17,7 @@ def ui_execute():
     """
     handle_scaling()
     # TODO: Setup stylesheets
+    # https://github.com/RascalSoftware/RasCAL-2/issues/17
     app = QtWidgets.QApplication(sys.argv[:1])
     app.setWindowIcon(QtGui.QIcon(path_for("logo.png")))
 
@@ -27,7 +28,7 @@ def ui_execute():
 
 def main():
     multiprocessing.freeze_support()
-    # TODO: Initialise Logging
+
     exit_code = ui_execute()
     sys.exit(exit_code)
 

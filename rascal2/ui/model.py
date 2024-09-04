@@ -14,7 +14,7 @@ class MainWindowModel(QtCore.QObject):
 
         self.save_path = ""
 
-    def createProject(self, name: str, save_path: str):
+    def create_project(self, name: str, save_path: str):
         """Creates a new RAT project and controls object.
 
         Parameters

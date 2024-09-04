@@ -8,7 +8,7 @@ def test_create_project():
     assert model.results is None
     assert model.save_path == ""
 
-    model.createProject("Test", "C:/test")
+    model.create_project("Test", "C:/test")
 
     assert model.project.name == "Test"
     assert model.controls is not None

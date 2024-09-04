@@ -27,8 +27,8 @@ def test_startup_widget_initial_state(setup_startup_widget):
 
 def test_show_project_dialog_called(setup_startup_widget):
     """
-    Tests the showProjectDialog method is called once.
+    Tests the show_project_dialog method is called once.
     """
     startup_widget, parent = setup_startup_widget
     startup_widget.new_project_button.click()
-    parent.showProjectDialog.assert_called_once()
+    parent.show_project_dialog.assert_called_once()

@@ -78,7 +78,7 @@ class StartUpWidget(QtWidgets.QWidget):
         """
         self.new_project_button = QtWidgets.QPushButton(self)
         self.new_project_button.setIcon(QtGui.QIcon(path_for("create.png")))
-        self.new_project_button.clicked.connect(self.parent().showProjectDialog)
+        self.new_project_button.clicked.connect(self.parent().show_project_dialog)
         self.new_project_button.setStyleSheet(self._button_style)
 
         self.import_project_button = QtWidgets.QPushButton(self)

@@ -7,7 +7,7 @@ from rascal2.dialogs.project_dialog import ProjectDialog
 
 
 class MockPresenter(QtWidgets.QMainWindow):
-    def createProject(self, name: str, folder: str):
+    def create_project(self, name: str, folder: str):
         pass
 
 
@@ -17,7 +17,7 @@ class MockParentWindow(QtWidgets.QMainWindow):
         self.presenter = MockPresenter()
         self.toolbar = self.addToolBar("ToolBar")
         self.toolbar.setEnabled(False)
-        self.showProjectDialog = MagicMock()
+        self.show_project_dialog = MagicMock()
 
 
 @pytest.fixture
@@ -90,7 +90,7 @@ def test_inline_error_msgs(mock_listdir, setup_project_dialog_widget):
 
 
 @patch("os.listdir")
-@patch.object(MockPresenter, "createProject")
+@patch.object(MockPresenter, "create_project")
 def test_create_button(mock_create_project, mock_listdir, setup_project_dialog_widget):
     """
     Tests create button on the ProjectDialog class.

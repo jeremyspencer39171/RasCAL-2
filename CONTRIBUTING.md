@@ -50,3 +50,5 @@ Style guidelines
 ----------------
 * Docstrings should be written in the numpydoc format.
 * `ruff format` must be used to format code.
+* Method names should be written in snake case (like_this). If you are overriding a PyQt6 method,
+  add it to `extend-ignore-names` in the section `[tool.ruff.lint.pep8-naming]` in the pyproject.toml.

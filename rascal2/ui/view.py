@@ -29,15 +29,19 @@ class MainWindowView(QtWidgets.QMainWindow):
 
         self.mdi = QtWidgets.QMdiArea()
         # TODO replace the widgets below
+        # plotting: NO ISSUE YET
+        # https://github.com/RascalSoftware/RasCAL-2/issues/5
+        # https://github.com/RascalSoftware/RasCAL-2/issues/7
+        # project: NO ISSUE YET
         self.plotting_widget = QtWidgets.QWidget()
         self.terminal_widget = QtWidgets.QWidget()
         self.controls_widget = QtWidgets.QWidget()
         self.project_widget = QtWidgets.QWidget()
 
-        self.createActions()
-        self.createMenus()
-        self.createToolBar()
-        self.createStatusBar()
+        self.create_actions()
+        self.create_menus()
+        self.create_toolbar()
+        self.create_status_bar()
 
         self.setMinimumSize(1024, 900)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -46,7 +50,7 @@ class MainWindowView(QtWidgets.QMainWindow):
 
         self.setCentralWidget(self.startup_dlg)
 
-    def showProjectDialog(self):
+    def show_project_dialog(self):
         """Shows the project dialog to create a new project"""
         if self.startup_dlg.isVisible():
             self.startup_dlg.hide()
@@ -57,13 +61,13 @@ class MainWindowView(QtWidgets.QMainWindow):
         ):
             self.startup_dlg.show()
 
-    def createActions(self):
+    def create_actions(self):
         """Creates the menu and toolbar actions"""
 
         self.new_project_action = QtGui.QAction("&New", self)
         self.new_project_action.setStatusTip("Create a new project")
         self.new_project_action.setIcon(QtGui.QIcon(path_for("new-project.png")))
-        self.new_project_action.triggered.connect(self.showProjectDialog)
+        self.new_project_action.triggered.connect(self.show_project_dialog)
         self.new_project_action.setShortcut(QtGui.QKeySequence.StandardKey.New)
 
         self.open_project_action = QtGui.QAction("&Open", self)
@@ -93,7 +97,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.open_help_action = QtGui.QAction("&Help", self)
         self.open_help_action.setStatusTip("Open Documentation")
         self.open_help_action.setIcon(QtGui.QIcon(path_for("help.png")))
-        self.open_help_action.triggered.connect(self.openDocs)
+        self.open_help_action.triggered.connect(self.open_docs)
 
         self.exit_action = QtGui.QAction("E&xit", self)
         self.exit_action.setStatusTip(f"Quit {MAIN_WINDOW_TITLE}")
@@ -106,7 +110,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.tile_windows_action.setIcon(QtGui.QIcon(path_for("tile.png")))
         self.tile_windows_action.triggered.connect(self.mdi.tileSubWindows)
 
-    def createMenus(self):
+    def create_menus(self):
         """Creates the main menu and sub menus"""
         main_menu = self.menuBar()
         main_menu.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.PreventContextMenu)
@@ -128,12 +132,12 @@ class MainWindowView(QtWidgets.QMainWindow):
         help_menu = main_menu.addMenu("&Help")
         help_menu.addAction(self.open_help_action)
 
-    def openDocs(self):
+    def open_docs(self):
         """Opens the documentation"""
         url = QtCore.QUrl("https://rascalsoftware.github.io/RAT-Docs/dev/index.html")
         QtGui.QDesktopServices.openUrl(url)
 
-    def createToolBar(self):
+    def create_toolbar(self):
         """Creates the toolbar"""
         self.toolbar = self.addToolBar("ToolBar")
         self.toolbar.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.PreventContextMenu)
@@ -148,12 +152,12 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.toolbar.addAction(self.export_plots_action)
         self.toolbar.addAction(self.open_help_action)
 
-    def createStatusBar(self):
+    def create_status_bar(self):
         """Creates the status bar"""
         sb = QtWidgets.QStatusBar()
         self.setStatusBar(sb)
 
-    def setupMDI(self):
+    def setup_mdi(self):
         """Creates the multi-document interface"""
         widgets = {
             "Plots": self.plotting_widget,
@@ -169,6 +173,7 @@ class MainWindowView(QtWidgets.QMainWindow):
             )
             window.setWindowTitle(title)
         # TODO implement user save for layouts, this should default to use saved layout and fallback to tile
+        # https://github.com/RascalSoftware/RasCAL-2/issues/15
         self.mdi.tileSubWindows()
         self.startup_dlg = self.takeCentralWidget()
         self.setCentralWidget(self.mdi)
