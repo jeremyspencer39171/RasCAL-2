@@ -4,6 +4,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from rascal2.config import path_for, setup_logging, setup_settings
 from rascal2.dialogs.project_dialog import ProjectDialog
+from rascal2.widgets import ControlsWidget
 from rascal2.widgets.startup_widget import StartUpWidget
 
 from .presenter import MainWindowPresenter
@@ -18,7 +19,6 @@ class MainWindowView(QtWidgets.QMainWindow):
         super().__init__()
         self.setWindowTitle(MAIN_WINDOW_TITLE)
 
-        self.presenter = MainWindowPresenter(self)
         window_icon = QtGui.QIcon(path_for("logo.png"))
 
         self.undo_stack = QtGui.QUndoStack(self)
@@ -27,6 +27,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.undo_view.setWindowIcon(window_icon)
         self.undo_view.setAttribute(QtCore.Qt.WidgetAttribute.WA_QuitOnClose, False)
 
+        self.presenter = MainWindowPresenter(self)
         self.mdi = QtWidgets.QMdiArea()
         # TODO replace the widgets below
         # plotting: NO ISSUE YET
@@ -35,7 +36,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         # project: NO ISSUE YET
         self.plotting_widget = QtWidgets.QWidget()
         self.terminal_widget = QtWidgets.QWidget()
-        self.controls_widget = QtWidgets.QWidget()
+        self.controls_widget = ControlsWidget(self)
         self.project_widget = QtWidgets.QWidget()
 
         self.create_actions()
@@ -165,6 +166,7 @@ class MainWindowView(QtWidgets.QMainWindow):
             "Terminal": self.terminal_widget,
             "Fitting Controls": self.controls_widget,
         }
+        self.controls_widget.setup_controls()
 
         for title, widget in reversed(widgets.items()):
             widget.setWindowTitle(title)

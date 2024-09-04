@@ -30,4 +30,4 @@ mark-parentheses = false
 
 [tool.ruff.lint.pep8-naming]
 # if overriding a PyQt method, please add it here!
-extend-ignore-names = ["allKeys"]
+extend-ignore-names = ["allKeys", "createEditor", "setEditorData", "textFromValue"]
