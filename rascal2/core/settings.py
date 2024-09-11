@@ -4,7 +4,7 @@ import logging
 from enum import IntEnum, StrEnum
 from os import PathLike
 from pathlib import PurePath
-from typing import Any
+from typing import Any, TypeAlias
 
 from pydantic import BaseModel, Field
 from PyQt6 import QtCore
@@ -54,6 +54,20 @@ class LogLevels(IntEnum):
         raise ValueError("Not a known logging level.")
 
 
+# WindowGeometry is a tuple (x, y, width, height, minimized)
+# where 'minimized' is True iff the window is minimized
+WindowGeometry: TypeAlias = tuple[int, int, int, int, bool]
+
+
+class MDIGeometries(BaseModel):
+    """Model for storing window positions and sizes."""
+
+    plots: WindowGeometry = Field(max_length=5, min_length=5)
+    project: WindowGeometry = Field(max_length=5, min_length=5)
+    terminal: WindowGeometry = Field(max_length=5, min_length=5)
+    controls: WindowGeometry = Field(max_length=5, min_length=5)
+
+
 class Settings(BaseModel, validate_assignment=True, arbitrary_types_allowed=True):
     """Model for system settings.
 
@@ -72,8 +86,11 @@ class Settings(BaseModel, validate_assignment=True, arbitrary_types_allowed=True
     style: Styles = Field(default=Styles.Light, title="general", description="Style")
     editor_fontsize: int = Field(default=12, title="general", description="Editor Font Size", gt=0)
     terminal_fontsize: int = Field(default=12, title="general", description="Terminal Font Size", gt=0)
+
     log_path: str = Field(default="logs/rascal.log", title="logging", description="Path to Log File")
     log_level: LogLevels = Field(default=LogLevels.Info, title="logging", description="Minimum Log Level")
+
+    mdi_defaults: MDIGeometries | None = Field(default=None, title="windows", description="Default Window Geometries")
 
     def model_post_init(self, __context: Any):
         global_settings = get_global_settings()

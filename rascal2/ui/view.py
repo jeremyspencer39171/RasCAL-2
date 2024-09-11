@@ -3,6 +3,7 @@ import pathlib
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from rascal2.config import path_for, setup_logging, setup_settings
+from rascal2.core.settings import MDIGeometries
 from rascal2.dialogs.project_dialog import ProjectDialog
 from rascal2.widgets import ControlsWidget
 from rascal2.widgets.startup_widget import StartUpWidget
@@ -107,9 +108,15 @@ class MainWindowView(QtWidgets.QMainWindow):
 
         # Window menu actions
         self.tile_windows_action = QtGui.QAction("Tile Windows", self)
-        self.tile_windows_action.setStatusTip("Arrange windows in the default grid")
+        self.tile_windows_action.setStatusTip("Arrange windows in the default grid.")
         self.tile_windows_action.setIcon(QtGui.QIcon(path_for("tile.png")))
         self.tile_windows_action.triggered.connect(self.mdi.tileSubWindows)
+        self.reset_windows_action = QtGui.QAction("Reset to Default")
+        self.reset_windows_action.setStatusTip("Reset the windows to their default arrangement.")
+        self.reset_windows_action.triggered.connect(self.reset_mdi_layout)
+        self.save_default_windows_action = QtGui.QAction("Save Current Window Positions")
+        self.save_default_windows_action.setStatusTip("Set the current window positions as default.")
+        self.save_default_windows_action.triggered.connect(self.save_mdi_layout)
 
     def create_menus(self):
         """Creates the main menu and sub menus"""
@@ -129,6 +136,8 @@ class MainWindowView(QtWidgets.QMainWindow):
 
         windows_menu = main_menu.addMenu("&Windows")
         windows_menu.addAction(self.tile_windows_action)
+        windows_menu.addAction(self.reset_windows_action)
+        windows_menu.addAction(self.save_default_windows_action)
 
         help_menu = main_menu.addMenu("&Help")
         help_menu.addAction(self.open_help_action)
@@ -174,11 +183,38 @@ class MainWindowView(QtWidgets.QMainWindow):
                 widget, QtCore.Qt.WindowType.WindowMinMaxButtonsHint | QtCore.Qt.WindowType.WindowTitleHint
             )
             window.setWindowTitle(title)
-        # TODO implement user save for layouts, this should default to use saved layout and fallback to tile
-        # https://github.com/RascalSoftware/RasCAL-2/issues/15
-        self.mdi.tileSubWindows()
+        self.reset_mdi_layout()
         self.startup_dlg = self.takeCentralWidget()
         self.setCentralWidget(self.mdi)
+
+    def reset_mdi_layout(self):
+        """Reset MDI layout to the default."""
+        if self.settings.mdi_defaults is None:
+            for window in self.mdi.subWindowList():
+                window.showNormal()
+            self.mdi.tileSubWindows()
+        else:
+            for window in self.mdi.subWindowList():
+                # get corresponding MDIGeometries entry for the widget
+                widget_name = window.windowTitle().lower().split(" ")[-1]
+                x, y, width, height, minimized = getattr(self.settings.mdi_defaults, widget_name)
+                if minimized:
+                    window.showMinimized()
+                else:
+                    window.showNormal()
+
+                window.setGeometry(x, y, width, height)
+
+    def save_mdi_layout(self):
+        """Set current MDI geometries as the default."""
+        geoms = {}
+        for window in self.mdi.subWindowList():
+            # get corresponding MDIGeometries entry for the widget
+            widget_name = window.windowTitle().lower().split(" ")[-1]
+            geom = window.geometry()
+            geoms[widget_name] = (geom.x(), geom.y(), geom.width(), geom.height(), window.isMinimized())
+
+        self.settings.mdi_defaults = MDIGeometries.model_validate(geoms)
 
     def init_settings_and_log(self, save_path: str):
         """Initialise settings and logging for the project.
