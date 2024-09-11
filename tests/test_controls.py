@@ -97,7 +97,7 @@ def test_procedure_select(controls_widget, procedure):
     wg.procedure_dropdown.setCurrentText(procedure)
     current_fit_set = wg.fit_settings_layout.currentWidget()
     for setting in fields[procedure]:
-        if setting not in ["procedure", "resampleParams"]:
+        if setting not in ["procedure"]:
             assert setting in list(current_fit_set.rows.keys())
 
 

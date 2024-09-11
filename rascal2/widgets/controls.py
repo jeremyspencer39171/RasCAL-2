@@ -93,9 +93,6 @@ class ControlsWidget(QtWidgets.QWidget):
         # add fit settings for each procedure
         for procedure in Procedures:
             proc_settings = [f for f in fields.get(procedure, []) if f != "procedure"]
-            # FIXME remove when resampleParams has been split
-            # https://github.com/RascalSoftware/python-RAT/issues/69
-            proc_settings.remove("resampleParams")
             fit_set = FitSettingsWidget(self, proc_settings, self.presenter)
             self.fit_settings_layout.addWidget(fit_set)
 
@@ -173,9 +170,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.presenter.edit_controls("procedure", procedure)
         # synchronise common fields between procedures
         for field in common_fields:
-            # FIXME remove resampleparams when fixed
-            # https://github.com/RascalSoftware/RasCAL-2/issues/9
-            if field not in ["procedure", "resampleParams"]:
+            if field not in ["procedure"]:
                 self.fit_settings_layout.currentWidget().update_data(field)
 
 
