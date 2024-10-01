@@ -103,7 +103,7 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
             The string displayed on the spinbox.
 
         """
-        return f"{value:.{self.decimals()}g}"
+        return f"{round(value, self.decimals()):.{self.decimals()}g}"
 
     def validate(self, input, pos) -> tuple[QtGui.QValidator.State, str, int]:
         """Validate a string written into the spinbox.
