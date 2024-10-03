@@ -3,7 +3,7 @@
 import logging
 from enum import IntEnum, StrEnum
 from os import PathLike
-from pathlib import PurePath
+from pathlib import Path, PurePath
 from typing import Any, TypeAlias
 
 from pydantic import BaseModel, Field
@@ -20,6 +20,26 @@ def get_global_settings() -> QtCore.QSettings:
         "RasCAL-2",
         "RasCAL-2",
     )
+
+
+def delete_local_settings(path: str | PathLike) -> None:
+    """Delete the "settings.json" file.
+
+    Parameters
+    ----------
+    path: str or PathLike
+        The path to the folder where the settings are saved.
+    """
+    file = Path(path, "settings.json")
+    file.unlink(missing_ok=True)
+
+
+class SettingsGroups(StrEnum):
+    """The groups of the RasCAL-2 settings, used to set tabs in the dialog"""
+
+    General = "General"
+    Logging = "Logging"
+    Windows = "Windows"
 
 
 class Styles(StrEnum):
@@ -83,14 +103,16 @@ class Settings(BaseModel, validate_assignment=True, arbitrary_types_allowed=True
 
     # The Settings object's own model fields contain the within-project settings.
     # The global settings are read and written via this object using `set_global_settings`.
-    style: Styles = Field(default=Styles.Light, title="general", description="Style")
-    editor_fontsize: int = Field(default=12, title="general", description="Editor Font Size", gt=0)
-    terminal_fontsize: int = Field(default=12, title="general", description="Terminal Font Size", gt=0)
+    style: Styles = Field(default=Styles.Light, title=SettingsGroups.General, description="Style")
+    editor_fontsize: int = Field(default=12, title=SettingsGroups.General, description="Editor Font Size", gt=0)
+    terminal_fontsize: int = Field(default=12, title=SettingsGroups.General, description="Terminal Font Size", gt=0)
 
-    log_path: str = Field(default="logs/rascal.log", title="logging", description="Path to Log File")
-    log_level: LogLevels = Field(default=LogLevels.Info, title="logging", description="Minimum Log Level")
+    log_path: str = Field(default="logs/rascal.log", title=SettingsGroups.Logging, description="Path to Log File")
+    log_level: LogLevels = Field(default=LogLevels.Info, title=SettingsGroups.Logging, description="Minimum Log Level")
 
-    mdi_defaults: MDIGeometries | None = Field(default=None, title="windows", description="Default Window Geometries")
+    mdi_defaults: MDIGeometries = Field(
+        default=None, title=SettingsGroups.Windows, description="Default Window Geometries"
+    )
 
     def model_post_init(self, __context: Any):
         global_settings = get_global_settings()

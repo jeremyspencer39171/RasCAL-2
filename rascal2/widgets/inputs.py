@@ -39,7 +39,7 @@ class ValidatedInputWidget(QtWidgets.QWidget):
 
         if issubclass(field_info.annotation, Enum):
             self.editor = QtWidgets.QComboBox(self)
-            self.editor.addItems(str(e.value) for e in field_info.annotation)
+            self.editor.addItems(str(e) for e in field_info.annotation)
             self.get_data = self.editor.currentText
             self.set_data = self.editor.setCurrentText
             self.edited_signal = self.editor.currentTextChanged

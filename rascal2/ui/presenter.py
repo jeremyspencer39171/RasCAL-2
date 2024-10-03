@@ -39,6 +39,7 @@ class MainWindowPresenter:
         self.view.init_settings_and_log(save_path)
         self.view.setup_mdi()
         self.view.undo_stack.clear()
+        self.view.enable_elements()
 
     def edit_controls(self, setting: str, value: Any):
         """Edit a setting in the Controls object.

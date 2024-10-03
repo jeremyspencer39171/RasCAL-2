@@ -6,14 +6,14 @@ from unittest.mock import patch
 
 import pytest
 
-from rascal2.core import Settings
+from rascal2.core.settings import Settings, delete_local_settings
 
 
 class MockGlobalSettings:
     """A mock of the global settings."""
 
     def __init__(self):
-        self.settings = {"general/editor_fontsize": 15, "general/terminal_fontsize": 28}
+        self.settings = {"General/editor_fontsize": 15, "General/terminal_fontsize": 28}
 
     def value(self, key):
         return self.settings[key]
@@ -39,6 +39,19 @@ def test_global_defaults():
     all_set = Settings(editor_fontsize=12, terminal_fontsize=15)
     assert all_set.editor_fontsize == 12
     assert all_set.terminal_fontsize == 15
+
+
+def test_delete_local_settings():
+    """Test that the local settings file "settings.json" can be safely removed."""
+    with tempfile.TemporaryDirectory() as temp:
+        temp_settings_file = Path(temp, "settings.json")
+        assert not temp_settings_file.exists()
+        temp_settings_file.touch()
+        assert temp_settings_file.exists()
+        delete_local_settings(temp)
+        assert not temp_settings_file.exists()
+        # Delete does not raise an error if the settings file is not present
+        delete_local_settings(temp)
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"style": "light", "editor_fontsize": 15}, {"terminal_fontsize": 8}])
@@ -68,11 +81,10 @@ def test_set_global(mock):
 
     settings = Settings(editor_fontsize=9)
     settings.set_global_settings()
-    mock.assert_called_once_with("general/editor_fontsize", 9)
+    mock.assert_called_once_with("General/editor_fontsize", 9)
 
     mock.reset_mock()
     settings = Settings(editor_fontsize=18, terminal_fontsize=3)
     settings.set_global_settings()
-    print(mock.mock_calls)
-    mock.assert_any_call("general/editor_fontsize", 18)
-    mock.assert_any_call("general/terminal_fontsize", 3)
+    mock.assert_any_call("General/editor_fontsize", 18)
+    mock.assert_any_call("General/terminal_fontsize", 3)
