@@ -1,9 +1,10 @@
 import logging
 import pathlib
 import platform
+import sys
 from os import PathLike
 
-from rascal2.core import Settings
+from rascal2.core import Settings, get_global_settings
 
 SOURCE_PATH = pathlib.Path(__file__).parent
 STATIC_PATH = SOURCE_PATH / "static"
@@ -72,8 +73,9 @@ def setup_logging(log_path: str | PathLike, level: int = logging.INFO) -> loggin
 
     """
     path = pathlib.Path(log_path)
-    logger = logging.getLogger(path.stem)
+    logger = logging.getLogger("rascal_log")
     logger.setLevel(level)
+    logger.handlers.clear()
 
     # TODO add console print handler when console is added
     # https://github.com/RascalSoftware/RasCAL-2/issues/5
@@ -81,3 +83,16 @@ def setup_logging(log_path: str | PathLike, level: int = logging.INFO) -> loggin
     logger.addHandler(log_filehandler)
 
     return logger
+
+
+def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
+    """Qt slots swallows exceptions but this ensures exceptions are logged"""
+    logger = logging.getLogger("rascal_log")
+    if not logger.handlers:
+        # Backup in case the crash happens before the local logger setup
+        path = pathlib.Path(get_global_settings().fileName()).parent
+        path.mkdir(parents=True, exist_ok=True)
+        logger.addHandler(logging.FileHandler(path / "crash.log"))
+    logger.critical("An unhandled exception occurred!", exc_info=(exc_type, exc_value, exc_traceback))
+    logging.shutdown()
+    sys.exit(1)

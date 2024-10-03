@@ -19,7 +19,6 @@ class MainWindowPresenter:
         self.view = view
         self.model = MainWindowModel()
         self.title = self.view.windowTitle()
-        self.undo_stack = self.view.undo_stack
 
     def create_project(self, name: str, save_path: str):
         """Creates a new RAT project and controls object then initialise UI.
@@ -39,6 +38,7 @@ class MainWindowPresenter:
         # https://github.com/RascalSoftware/RasCAL-2/issues/15
         self.view.init_settings_and_log(save_path)
         self.view.setup_mdi()
+        self.view.undo_stack.clear()
 
     def edit_controls(self, setting: str, value: Any):
         """Edit a setting in the Controls object.

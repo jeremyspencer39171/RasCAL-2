@@ -82,15 +82,19 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.save_project_action.setIcon(QtGui.QIcon(path_for("save-project.png")))
         self.save_project_action.setShortcut(QtGui.QKeySequence.StandardKey.Save)
 
-        self.undo_action = QtGui.QAction("&Undo", self)
-        self.undo_action.setStatusTip("Undo")
+        self.undo_action = self.undo_stack.createUndoAction(self, "&Undo")
+        self.undo_action.setStatusTip("Undo the last action")
         self.undo_action.setIcon(QtGui.QIcon(path_for("undo.png")))
         self.undo_action.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
 
-        self.redo_action = QtGui.QAction("&Redo", self)
-        self.redo_action.setStatusTip("Redo")
+        self.redo_action = self.undo_stack.createRedoAction(self, "&Redo")
+        self.redo_action.setStatusTip("Redo the last undone action")
         self.redo_action.setIcon(QtGui.QIcon(path_for("redo.png")))
         self.redo_action.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
+
+        self.undo_view_action = QtGui.QAction("Undo &History", self)
+        self.undo_view_action.setStatusTip("View undo history")
+        self.undo_view_action.triggered.connect(self.undo_view.show)
 
         self.export_plots_action = QtGui.QAction("Export", self)
         self.export_plots_action.setStatusTip("Export Plots")
@@ -128,11 +132,12 @@ class MainWindowView(QtWidgets.QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(self.exit_action)
 
-        # edit_menu = main_menu.addMenu("&Edit")
+        edit_menu = main_menu.addMenu("&Edit")
+        edit_menu.addAction(self.undo_action)
+        edit_menu.addAction(self.redo_action)
+        edit_menu.addAction(self.undo_view_action)
 
-        tools_menu = main_menu.addMenu("&Tools")
-        tools_menu.addAction(self.undo_action)
-        tools_menu.addAction(self.redo_action)
+        # tools_menu = main_menu.addMenu("&Tools")
 
         windows_menu = main_menu.addMenu("&Windows")
         windows_menu.addAction(self.tile_windows_action)

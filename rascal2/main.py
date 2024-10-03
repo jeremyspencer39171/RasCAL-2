@@ -3,7 +3,7 @@ import sys
 
 from PyQt6 import QtGui, QtWidgets
 
-from rascal2.config import handle_scaling, path_for
+from rascal2.config import handle_scaling, log_uncaught_exceptions, path_for
 from rascal2.ui.view import MainWindowView
 
 
@@ -28,7 +28,7 @@ def ui_execute():
 
 def main():
     multiprocessing.freeze_support()
-
+    sys.excepthook = log_uncaught_exceptions
     exit_code = ui_execute()
     sys.exit(exit_code)
 
