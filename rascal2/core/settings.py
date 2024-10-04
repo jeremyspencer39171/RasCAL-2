@@ -39,6 +39,7 @@ class SettingsGroups(StrEnum):
 
     General = "General"
     Logging = "Logging"
+    Terminal = "Terminal"
     Windows = "Windows"
 
 
@@ -105,10 +106,14 @@ class Settings(BaseModel, validate_assignment=True, arbitrary_types_allowed=True
     # The global settings are read and written via this object using `set_global_settings`.
     style: Styles = Field(default=Styles.Light, title=SettingsGroups.General, description="Style")
     editor_fontsize: int = Field(default=12, title=SettingsGroups.General, description="Editor Font Size", gt=0)
-    terminal_fontsize: int = Field(default=12, title=SettingsGroups.General, description="Terminal Font Size", gt=0)
 
     log_path: str = Field(default="logs/rascal.log", title=SettingsGroups.Logging, description="Path to Log File")
     log_level: LogLevels = Field(default=LogLevels.Info, title=SettingsGroups.Logging, description="Minimum Log Level")
+
+    clear_terminal: bool = Field(
+        default=True, title=SettingsGroups.Terminal, description="Clear Terminal when Run Starts"
+    )
+    terminal_fontsize: int = Field(default=12, title=SettingsGroups.Terminal, description="Terminal Font Size", gt=0)
 
     mdi_defaults: MDIGeometries = Field(
         default=None, title=SettingsGroups.Windows, description="Default Window Geometries"

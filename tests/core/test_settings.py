@@ -13,7 +13,7 @@ class MockGlobalSettings:
     """A mock of the global settings."""
 
     def __init__(self):
-        self.settings = {"General/editor_fontsize": 15, "General/terminal_fontsize": 28}
+        self.settings = {"General/editor_fontsize": 15, "Terminal/terminal_fontsize": 28}
 
     def value(self, key):
         return self.settings[key]
@@ -87,4 +87,4 @@ def test_set_global(mock):
     settings = Settings(editor_fontsize=18, terminal_fontsize=3)
     settings.set_global_settings()
     mock.assert_any_call("General/editor_fontsize", 18)
-    mock.assert_any_call("General/terminal_fontsize", 3)
+    mock.assert_any_call("Terminal/terminal_fontsize", 3)

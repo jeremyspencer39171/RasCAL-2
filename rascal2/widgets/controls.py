@@ -32,7 +32,6 @@ class ControlsWidget(QtWidgets.QWidget):
 
         self.stop_button = QtWidgets.QPushButton(icon=QtGui.QIcon(path_for("stop.png")), text="Stop")
         self.stop_button.pressed.connect(self.presenter.interrupt_terminal)
-        self.stop_button.pressed.connect(self.run_button.toggle)
         self.stop_button.setStyleSheet("background-color: red;")
         self.stop_button.setEnabled(False)
 
@@ -48,7 +47,7 @@ class ControlsWidget(QtWidgets.QWidget):
         chi_layout = QtWidgets.QHBoxLayout()
         # TODO hook this up when we can actually run
         # https://github.com/RascalSoftware/RasCAL-2/issues/9
-        self.chi_squared = QtWidgets.QLineEdit("1.060")
+        self.chi_squared = QtWidgets.QLineEdit()
         self.chi_squared.setReadOnly(True)
         chi_layout.addWidget(QtWidgets.QLabel("Current chi-squared:"))
         chi_layout.addWidget(self.chi_squared)
@@ -145,11 +144,7 @@ class ControlsWidget(QtWidgets.QWidget):
             self.procedure_dropdown.setEnabled(False)
             self.run_button.setEnabled(False)
             self.stop_button.setEnabled(True)
-            # TODO some functional stuff... issue #9
-            # self.presenter.run() etc.
-            # presenter should send a signal when run is completed,
-            # which then toggles the button back
-            # https://github.com/RascalSoftware/RasCAL-2/issues/9
+            self.presenter.run()
         else:
             self.fit_settings.setEnabled(True)
             self.procedure_dropdown.setEnabled(True)

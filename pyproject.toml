@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rascal2"
-version = "0.0.0"
+dynamic = ["version"]
 dependencies = [
   "RATapi",
   "PyQt6",
@@ -16,6 +16,9 @@ license = {file = "LICENSE"}
 [project.urls]
 Documentation = "https://rascalsoftware.github.io/RAT/master/index.html"
 Repository = "https://github.com/RascalSoftware/RasCAL-2"
+
+[tool.setuptools.dynamic]
+version = {attr = "rascal2.RASCAL2_VERSION"}
 
 [tool.ruff]
 line-length = 120

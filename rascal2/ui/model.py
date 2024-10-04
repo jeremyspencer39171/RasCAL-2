@@ -27,3 +27,19 @@ class MainWindowModel(QtCore.QObject):
         self.project = RAT.Project(name=name)
         self.controls = RAT.Controls()
         self.save_path = save_path
+
+    def update_project(self, problem_definition: RAT.rat_core.ProblemDefinition):
+        """Update the project given a set of results."""
+        parameter_field = {
+            "parameters": "params",
+            "bulk_in": "bulkIn",
+            "bulk_out": "bulkOut",
+            "scalefactors": "scalefactors",
+            "domain_ratios": "domainRatio",
+            "background_parameters": "backgroundParams",
+            "resolution_parameters": "resolutionParams",
+        }
+
+        for class_list in RAT.project.parameter_class_lists:
+            for index, value in enumerate(getattr(problem_definition, parameter_field[class_list])):
+                getattr(self.project, class_list)[index].value = value

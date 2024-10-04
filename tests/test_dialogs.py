@@ -210,7 +210,7 @@ def test_settings_dialog_reset_button(settings_dialog_with_parent):
 @pytest.mark.parametrize(
     "tab_group, settings_labels",
     [
-        (SettingsGroups.General, ["Style", "Editor Fontsize", "Terminal Fontsize"]),
+        (SettingsGroups.General, ["Style", "Editor Fontsize"]),
     ],
 )
 def test_settings_dialog_tabs(settings_dialog_with_parent, tab_group, settings_labels):

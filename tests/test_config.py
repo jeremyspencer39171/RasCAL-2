@@ -3,6 +3,7 @@
 import tempfile
 from logging import CRITICAL, INFO, WARNING
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -25,7 +26,8 @@ def test_setup_settings():
 def test_setup_logging(level):
     """Test that the logger is set up correctly."""
     tmp = tempfile.mkdtemp()
-    log = setup_logging(Path(tmp, "rascal.log"), level)
+    terminal = MagicMock()
+    log = setup_logging(Path(tmp, "rascal.log"), terminal, level)
     assert Path(tmp, "rascal.log").is_file()
 
     assert log.level == level
