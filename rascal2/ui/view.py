@@ -1,10 +1,10 @@
-import pathlib
+from pathlib import Path
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from rascal2.config import path_for, setup_logging, setup_settings
 from rascal2.core.settings import MDIGeometries, Settings
-from rascal2.dialogs.project_dialog import ProjectDialog
+from rascal2.dialogs.project_dialog import PROJECT_FILES, LoadDialog, LoadR1Dialog, NewProjectDialog, StartupDialog
 from rascal2.dialogs.settings_dialog import SettingsDialog
 from rascal2.widgets import ControlsWidget, TerminalWidget
 from rascal2.widgets.startup_widget import StartUpWidget
@@ -34,7 +34,6 @@ class MainWindowView(QtWidgets.QMainWindow):
         # TODO replace the widgets below
         # plotting: NO ISSUE YET
         # https://github.com/RascalSoftware/RasCAL-2/issues/5
-        # https://github.com/RascalSoftware/RasCAL-2/issues/7
         # project: NO ISSUE YET
         self.plotting_widget = QtWidgets.QWidget()
         self.terminal_widget = TerminalWidget(self)
@@ -53,19 +52,21 @@ class MainWindowView(QtWidgets.QMainWindow):
 
         self.settings = Settings()
         self.startup_dlg = StartUpWidget(self)
-        self.project_dlg = ProjectDialog(self)
-
         self.setCentralWidget(self.startup_dlg)
 
-    def show_project_dialog(self):
-        """Shows the project dialog to create a new project"""
+    def show_project_dialog(self, dialog: StartupDialog):
+        """Shows a startup dialog of a given type.
+
+        Parameters
+        ----------
+        dialog : StartupDialog
+            The dialog to show.
+        """
         if self.startup_dlg.isVisible():
             self.startup_dlg.hide()
-        self.project_dlg = ProjectDialog(self)
-        if (
-            self.project_dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted
-            and self.centralWidget() is self.startup_dlg
-        ):
+
+        project_dlg = dialog(self)
+        if project_dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted and self.centralWidget() is self.startup_dlg:
             self.startup_dlg.show()
 
     def show_settings_dialog(self):
@@ -76,20 +77,26 @@ class MainWindowView(QtWidgets.QMainWindow):
     def create_actions(self):
         """Creates the menu and toolbar actions"""
 
-        self.new_project_action = QtGui.QAction("&New", self)
+        self.new_project_action = QtGui.QAction("&New Project", self)
         self.new_project_action.setStatusTip("Create a new project")
         self.new_project_action.setIcon(QtGui.QIcon(path_for("new-project.png")))
-        self.new_project_action.triggered.connect(self.show_project_dialog)
+        self.new_project_action.triggered.connect(lambda: self.show_project_dialog(NewProjectDialog))
         self.new_project_action.setShortcut(QtGui.QKeySequence.StandardKey.New)
 
-        self.open_project_action = QtGui.QAction("&Open", self)
+        self.open_project_action = QtGui.QAction("&Open Project", self)
         self.open_project_action.setStatusTip("Open an existing project")
         self.open_project_action.setIcon(QtGui.QIcon(path_for("browse-dark.png")))
+        self.open_project_action.triggered.connect(lambda: self.show_project_dialog(LoadDialog))
         self.open_project_action.setShortcut(QtGui.QKeySequence.StandardKey.Open)
+
+        self.open_r1_action = QtGui.QAction("Open &RasCAL-1 Project")
+        self.open_r1_action.setStatusTip("Open a RasCAL-1 project")
+        self.open_r1_action.triggered.connect(lambda: self.show_project_dialog(LoadR1Dialog))
 
         self.save_project_action = QtGui.QAction("&Save", self)
         self.save_project_action.setStatusTip("Save project")
         self.save_project_action.setIcon(QtGui.QIcon(path_for("save-project.png")))
+        self.save_project_action.triggered.connect(lambda: self.presenter.save_project())
         self.save_project_action.setShortcut(QtGui.QKeySequence.StandardKey.Save)
         self.save_project_action.setEnabled(False)
         self.disabled_elements.append(self.save_project_action)
@@ -100,6 +107,12 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.undo_action.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
         self.undo_action.setEnabled(False)
         self.disabled_elements.append(self.undo_action)
+
+        self.save_as_action = QtGui.QAction("Save To &Folder...", self)
+        self.save_as_action.setStatusTip("Save project to a specified folder.")
+        self.save_as_action.setIcon(QtGui.QIcon(path_for("save-project.png")))
+        self.save_as_action.triggered.connect(lambda: self.presenter.save_project(save_as=True))
+        self.save_as_action.setShortcut(QtGui.QKeySequence.StandardKey.SaveAs)
 
         self.redo_action = self.undo_stack.createRedoAction(self, "&Redo")
         self.redo_action.setStatusTip("Redo the last undone action")
@@ -176,6 +189,12 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.file_menu = self.main_menu.addMenu("&File")
         self.file_menu.addAction(self.new_project_action)
         self.file_menu.addSeparator()
+        self.file_menu.addAction(self.open_project_action)
+        self.file_menu.addAction(self.open_r1_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.save_project_action)
+        self.file_menu.addAction(self.save_as_action)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.settings_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
@@ -227,6 +246,12 @@ class MainWindowView(QtWidgets.QMainWindow):
 
     def setup_mdi(self):
         """Creates the multi-document interface"""
+        # if windows are already created, don't set them up again,
+        # just refresh the widget data
+        if len(self.mdi.subWindowList()) == 4:
+            self.controls_widget.setup_controls()
+            return
+
         widgets = {
             "Plots": self.plotting_widget,
             "Project": self.project_widget,
@@ -283,10 +308,9 @@ class MainWindowView(QtWidgets.QMainWindow):
             The save path for the project.
 
         """
-        self.save_path = save_path
-        proj_path = pathlib.Path(save_path)
+        proj_path = Path(save_path)
         self.settings = setup_settings(proj_path)
-        log_path = pathlib.Path(self.settings.log_path)
+        log_path = Path(self.settings.log_path)
         if not log_path.is_absolute():
             log_path = proj_path / log_path
 
@@ -307,3 +331,47 @@ class MainWindowView(QtWidgets.QMainWindow):
     def reset_widgets(self):
         """Reset widgets after a run."""
         self.controls_widget.run_button.setChecked(False)
+
+    def get_project_folder(self) -> str:
+        """Get a specified folder from the user.
+
+        Returns
+        -------
+        str
+            The chosen project folder.
+        """
+        project_folder = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
+        if project_folder:
+            if any(Path(project_folder, file).exists() for file in PROJECT_FILES):
+                overwrite = show_confirm_dialog(
+                    title="Confirm Overwrite",
+                    text="A project already exists in this folder, do you want to replace it?",
+                    parent=self,
+                )
+                if not overwrite:
+                    # return to file selection
+                    project_folder = self.get_project_folder()
+                    return project_folder  # must manually return else all the rejected overwrites will save at once!!
+
+            return project_folder
+
+
+def show_confirm_dialog(self, title: str, message: str) -> bool:
+    """Ask the user to confirm an action.
+
+    Parameters
+    ----------
+    title : str
+        The title of the confirm dialog.
+    message : str
+        The message to ask the user.
+
+    Returns
+    -------
+    bool
+        Whether the confirmation was affirmative.
+    """
+    buttons = QtWidgets.QMessageBox.StandardButton.Ok | QtWidgets.QMessageBox.StandardButton.Cancel
+    reply = QtWidgets.QMessageBox.question(self, title, message, buttons, QtWidgets.QMessageBox.StandardButton.Cancel)
+
+    return reply == QtWidgets.QMessageBox.StandardButton.Ok

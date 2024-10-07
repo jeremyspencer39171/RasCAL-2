@@ -6,6 +6,7 @@ import RATapi as RAT
 
 from rascal2.core import commands
 from rascal2.core.runner import LogData, RATRunner
+from rascal2.core.settings import update_recent_projects
 
 from .model import MainWindowModel
 
@@ -35,9 +36,45 @@ class MainWindowPresenter:
             The save path of the project.
 
         """
-
-        self.view.setWindowTitle(self.title + " - " + name)
         self.model.create_project(name, save_path)
+        self.initialise_ui(name, save_path)
+
+    def load_project(self, load_path: str):
+        """Load an existing RAT project then initialise UI.
+
+        Parameters
+        ----------
+        load_path : str
+            The path from which to load the project.
+
+        """
+        self.model.load_project(load_path)
+        self.initialise_ui(self.model.project.name, load_path)
+
+    def load_r1_project(self, load_path: str):
+        """Load a RAT project from a RasCAL-1 project file.
+
+        Parameters
+        ----------
+        load_path : str
+            The path to the R1 file.
+
+        """
+        self.model.load_r1_project(load_path)
+        self.initialise_ui(self.model.project.name, self.model.save_path)
+
+    def initialise_ui(self, name: str, save_path: str):
+        """Initialise UI for a project.
+
+        Parameters
+        ----------
+        name : str
+            The name of the project.
+        save_path : str
+            The save path of the project.
+
+        """
+        self.view.setWindowTitle(self.title + " - " + name)
         # TODO if the view's central widget is the startup one then setup MDI else reset the widgets.
         # https://github.com/RascalSoftware/RasCAL-2/issues/15
         self.view.init_settings_and_log(save_path)
@@ -73,6 +110,26 @@ class MainWindowPresenter:
             self.model.controls.model_validate({setting: value})
             self.view.undo_stack.push(commands.EditControls(self.model.controls, setting, value))
             return True
+
+    def save_project(self, save_as: bool = False):
+        """Save the model.
+
+        Parameters
+        ----------
+        save_as : bool
+            Whether we are saving to the existing save path or to a specified folder.
+
+        """
+        # we use this isinstance rather than `is not None`
+        # because some PyQt signals will send bools and so on to this as a slot!
+        if save_as:
+            to_path = self.view.get_project_folder()
+            if not to_path:
+                return
+            self.model.save_path = to_path
+
+        self.model.save_project()
+        update_recent_projects(self.model.save_path)
 
     def interrupt_terminal(self):
         """Sends an interrupt signal to the RAT runner."""

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rascal2.core.settings import Settings, delete_local_settings
+from rascal2.core.settings import Settings, delete_local_settings, update_recent_projects
 
 
 class MockGlobalSettings:
@@ -88,3 +88,28 @@ def test_set_global(mock):
     settings.set_global_settings()
     mock.assert_any_call("General/editor_fontsize", 18)
     mock.assert_any_call("Terminal/terminal_fontsize", 3)
+
+
+@pytest.mark.parametrize(
+    "recent_projects, path, expected",
+    (
+        (["proj1", "proj2", "proj3"], None, ["proj1", "proj2", "proj3"]),
+        (["proj1", "proj2", "DELETED"], None, ["proj1", "proj2"]),
+        (["proj1", "proj2", "proj3"], "proj2", ["proj2", "proj1", "proj3"]),
+    ),
+)
+@patch("rascal2.core.settings.QtCore.QSettings.setValue")
+def test_update_recent_projects(set_val_mock, recent_projects, path, expected):
+    """The recent projects should be updated to be newest to oldest with no deleted projects."""
+    with tempfile.TemporaryDirectory() as temp:
+        for proj in ["proj1", "proj2", "proj3"]:
+            Path(temp, proj).touch()
+
+        recent_projects = [str(Path(temp, proj)) for proj in recent_projects]
+        expected = [str(Path(temp, proj)) for proj in expected]
+
+        with patch("rascal2.core.settings.QtCore.QSettings.value", return_value=recent_projects):
+            if path is not None:
+                assert expected == update_recent_projects(str(Path(temp, path)))
+            else:
+                assert expected == update_recent_projects()

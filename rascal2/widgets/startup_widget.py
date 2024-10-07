@@ -1,6 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from rascal2.config import path_for
+from rascal2.dialogs.project_dialog import LoadDialog, LoadR1Dialog, NewProjectDialog
 
 
 class StartUpWidget(QtWidgets.QWidget):
@@ -78,15 +79,17 @@ class StartUpWidget(QtWidgets.QWidget):
         """
         self.new_project_button = QtWidgets.QPushButton(self)
         self.new_project_button.setIcon(QtGui.QIcon(path_for("create.png")))
-        self.new_project_button.clicked.connect(self.parent().show_project_dialog)
+        self.new_project_button.clicked.connect(lambda: self.parent().show_project_dialog(NewProjectDialog))
         self.new_project_button.setStyleSheet(self._button_style)
 
         self.import_project_button = QtWidgets.QPushButton(self)
         self.import_project_button.setIcon(QtGui.QIcon(path_for("browse-light.png")))
+        self.import_project_button.clicked.connect(lambda: self.parent().show_project_dialog(LoadDialog))
         self.import_project_button.setStyleSheet(self._button_style)
 
         self.import_r1_button = QtWidgets.QPushButton(self)
         self.import_r1_button.setIcon(QtGui.QIcon(path_for("import-r1.png")))
+        self.import_r1_button.clicked.connect(lambda: self.parent().show_project_dialog(LoadR1Dialog))
         self.import_r1_button.setStyleSheet(self._button_style)
 
     def create_labels(self) -> None:

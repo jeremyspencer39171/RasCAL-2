@@ -1,6 +1,8 @@
 """Unit tests for the main window view."""
 
-from unittest.mock import patch
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -75,3 +77,37 @@ def test_set_enabled(test_view):
     test_view.enable_elements()
     for element in test_view.disabled_elements:
         assert element.isEnabled()
+
+
+@patch("PyQt6.QtWidgets.QFileDialog.getExistingDirectory")
+def test_get_project_folder(mock_get_dir: MagicMock):
+    """Test that getting a specified folder works as expected."""
+    view = MainWindowView()
+    mock_overwrite = MagicMock(return_value=True)
+
+    tmp = tempfile.mkdtemp()
+    view.presenter.create_project("test", tmp)
+    mock_get_dir.return_value = tmp
+
+    with patch("rascal2.ui.view.show_confirm_dialog", new=mock_overwrite):
+        assert view.get_project_folder() == tmp
+
+    # check overwrite is triggered if project already in folder
+    Path(tmp, "controls.json").touch()
+    with patch("rascal2.ui.view.show_confirm_dialog", new=mock_overwrite):
+        assert view.get_project_folder() == tmp
+    mock_overwrite.assert_called_once()
+
+    def change_dir(*args, **kwargs):
+        """Change directory so mocked save_as doesn't recurse forever."""
+        mock_get_dir.return_value = "OTHERPATH"
+
+    # check not saved if overwrite is cancelled
+    # to avoid infinite recursion (which only happens because of the mock),
+    # set the mock to change the directory to some other path once called
+    mock_overwrite = MagicMock(return_value=False, side_effect=change_dir)
+
+    with patch("rascal2.ui.view.show_confirm_dialog", new=mock_overwrite):
+        assert view.get_project_folder() == "OTHERPATH"
+
+    mock_overwrite.assert_called_once()
