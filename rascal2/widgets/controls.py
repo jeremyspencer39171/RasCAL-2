@@ -8,7 +8,7 @@ from RATapi.controls import common_fields, fields
 from RATapi.utils.enums import Procedures
 
 from rascal2.config import path_for
-from rascal2.widgets.inputs import ValidatedInputWidget
+from rascal2.widgets.inputs import get_validated_input
 
 
 class ControlsWidget(QtWidgets.QWidget):
@@ -196,7 +196,7 @@ class FitSettingsWidget(QtWidgets.QWidget):
         controls_fields = self.get_controls_attribute("model_fields")
         for i, setting in enumerate(settings):
             field_info = controls_fields[setting]
-            self.rows[setting] = ValidatedInputWidget(field_info)
+            self.rows[setting] = get_validated_input(field_info)
             self.datasetter[setting] = self.create_model_data_setter(setting)
             self.rows[setting].edited_signal.connect(self.datasetter[setting])
             label = QtWidgets.QLabel(setting)

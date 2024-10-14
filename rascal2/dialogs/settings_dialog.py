@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtWidgets
 
 from rascal2.core.settings import Settings, SettingsGroups, delete_local_settings
-from rascal2.widgets.inputs import ValidatedInputWidget
+from rascal2.widgets.inputs import get_validated_input
 
 
 class SettingsDialog(QtWidgets.QDialog):
@@ -84,7 +84,7 @@ class SettingsTab(QtWidgets.QWidget):
         for i, setting in enumerate(group_settings):
             label_text = setting.replace("_", " ").title()
             tab_layout.addWidget(QtWidgets.QLabel(label_text), i, 0)
-            self.widgets[setting] = ValidatedInputWidget(field_info[setting])
+            self.widgets[setting] = get_validated_input(field_info[setting])
             try:
                 self.widgets[setting].set_data(getattr(self.settings, setting))
             except TypeError:

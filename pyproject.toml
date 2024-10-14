@@ -24,7 +24,7 @@ version = {attr = "rascal2.RASCAL2_VERSION"}
 line-length = 120
 
 [tool.ruff.lint]
-select = ["E", "F", "UP", "B", "SIM", "I", "N", "TD003"]
+select = ["E", "F", "UP", "B", "SIM", "I", "N", "TD003", "A"]
 ignore = ["SIM108", "N817"]
 
 [tool.ruff.lint.flake8-pytest-style]

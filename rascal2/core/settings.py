@@ -54,7 +54,7 @@ class LogLevels(IntEnum):
 
     Debug = logging.DEBUG
     Info = logging.INFO
-    Warning = logging.WARNING
+    Warn = logging.WARNING
     Error = logging.ERROR
     Critical = logging.CRITICAL
 
@@ -62,7 +62,7 @@ class LogLevels(IntEnum):
         names = {
             LogLevels.Debug: "DEBUG",
             LogLevels.Info: "INFO",
-            LogLevels.Warning: "WARNING",
+            LogLevels.Warn: "WARNING",
             LogLevels.Error: "ERROR",
             LogLevels.Critical: "CRITICAL",
         }

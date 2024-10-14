@@ -211,7 +211,7 @@ def test_verify_folder(contents, has_project):
 def test_load_invalid_json():
     """If project loading produces an error (which it does for invalid JSON), raise that error in the textbox."""
 
-    def error(dir):
+    def error(ignored_dir):
         raise ValueError("Project load error!")
 
     view.presenter.load_project = error

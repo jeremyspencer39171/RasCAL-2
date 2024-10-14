@@ -6,7 +6,7 @@ import pytest
 from pydantic.fields import FieldInfo
 from PyQt6 import QtWidgets
 
-from rascal2.widgets import AdaptiveDoubleSpinBox, ValidatedInputWidget
+from rascal2.widgets import AdaptiveDoubleSpinBox, get_validated_input
 
 
 class MyEnum(StrEnum):
@@ -28,7 +28,7 @@ class MyEnum(StrEnum):
 def test_editor_type(field_info, expected_type, example_data):
     """Test that the editor type is as expected, and can be read and written."""
 
-    widget = ValidatedInputWidget(field_info)
+    widget = get_validated_input(field_info)
     assert isinstance(widget.editor, expected_type)
     widget.set_data(example_data)
     assert widget.get_data() == example_data

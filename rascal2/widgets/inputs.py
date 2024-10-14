@@ -1,4 +1,4 @@
-"""Widget for validated user inputs."""
+"""Widgets for validated user inputs."""
 
 from enum import Enum
 from math import floor, log10
@@ -8,75 +8,153 @@ from pydantic.fields import FieldInfo
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 
-class ValidatedInputWidget(QtWidgets.QWidget):
-    """Value input generated from Pydantic field info.
+def get_validated_input(field_info: FieldInfo) -> QtWidgets.QWidget:
+    """Get a validated input widget from Pydantic field info.
 
     Parameters
     ----------
-    field_info: FieldInfo
+    field_info : FieldInfo
+        The Pydantic field info for the field.
+
+    Returns
+    -------
+    QtWidgets.QWidget
+        The validated input widget for the field.
+
+    """
+    class_widgets = {
+        bool: BoolInputWidget,
+        int: IntInputWidget,
+        float: FloatInputWidget,
+        Enum: EnumInputWidget,
+    }
+
+    for input_type, widget in class_widgets.items():
+        if issubclass(field_info.annotation, input_type):
+            return widget(field_info)
+
+    return BaseInputWidget(field_info)
+
+
+class BaseInputWidget(QtWidgets.QWidget):
+    """Base class for input generated from Pydantic field info.
+
+    This base class is used for unrecognised types.
+
+    Parameters
+    ----------
+    field_info : FieldInfo
         The Pydantic field info for the input.
-    parent: QWidget or None, default None
+    parent : QWidget or None, default None
         The parent widget of this widget.
 
     """
 
+    data_getter = "text"
+    data_setter = "setText"
+    edit_signal = "textChanged"
+
     def __init__(self, field_info: FieldInfo, parent=None):
         super().__init__(parent=parent)
+
+        self.editor: QtWidgets.QWidget = self.create_editor(field_info)
+        self.get_data: Callable = getattr(self.editor, self.data_getter)
+        self.set_data: Callable = getattr(self.editor, self.data_setter)
+        self.edited_signal: QtCore.pyqtSignal = getattr(self.editor, self.edit_signal)
+
         layout = QtWidgets.QVBoxLayout()
-        # editor_data and change_editor_data are set to the getter and setter
-        # methods for the actual editor inside the widget
-        self.get_data: Callable
-        self.set_data: Callable
-        self.edited_signal: QtCore.pyqtSignal
-
-        # widget, getter, setter and change signal for different datatypes
-        editor_types = {
-            int: (QtWidgets.QSpinBox, "value", "setValue", "editingFinished"),
-            float: (AdaptiveDoubleSpinBox, "value", "setValue", "editingFinished"),
-            bool: (QtWidgets.QCheckBox, "isChecked", "setChecked", "checkStateChanged"),
-        }
-        defaults = (QtWidgets.QLineEdit, "text", "setText", "textChanged")
-
-        if issubclass(field_info.annotation, Enum):
-            self.editor = QtWidgets.QComboBox(self)
-            self.editor.addItems(str(e) for e in field_info.annotation)
-            self.get_data = self.editor.currentText
-            self.set_data = self.editor.setCurrentText
-            self.edited_signal = self.editor.currentTextChanged
-        else:
-            editor, getter, setter, signal = editor_types.get(field_info.annotation, defaults)
-            self.editor = editor(self)
-            self.get_data = getattr(self.editor, getter)
-            self.set_data = getattr(self.editor, setter)
-            self.edited_signal = getattr(self.editor, signal)
-        if isinstance(self.editor, QtWidgets.QSpinBox):
-            for item in field_info.metadata:
-                if hasattr(item, "ge"):
-                    self.editor.setMinimum(item.ge)
-                if hasattr(item, "gt"):
-                    self.editor.setMinimum(item.gt + 1)
-                if hasattr(item, "le"):
-                    self.editor.setMaximum(item.le)
-                if hasattr(item, "lt"):
-                    self.editor.setMaximum(item.lt - 1)
-        elif isinstance(self.editor, AdaptiveDoubleSpinBox):
-            for item in field_info.metadata:
-                for attr in ["ge", "gt"]:
-                    if hasattr(item, attr):
-                        self.editor.setMinimum(getattr(item, attr))
-                for attr in ["le", "lt"]:
-                    if hasattr(item, attr):
-                        self.editor.setMaximum(getattr(item, attr))
-            # if no default exists, field_info.default is PydanticUndefined not a nonexistent attribute
-            if isinstance(field_info.default, (int, float)) and field_info.default > 0:
-                # set default decimals to order of magnitude of default value
-                self.editor.setDecimals(-floor(log10(abs(field_info.default))))
-
         layout.addWidget(self.editor)
         layout.setContentsMargins(5, 0, 0, 0)
 
         self.setLayout(layout)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+
+    def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
+        """Create the relevant editor for the field information.
+
+        Parameters
+        ----------
+        field_info : FieldInfo
+            The Pydantic field information for the input.
+
+        Returns
+        -------
+        QtWidgets.QWidget
+            A widget which allows restricted input based on the field information.
+
+        """
+        return QtWidgets.QLineEdit(self)
+
+
+class IntInputWidget(BaseInputWidget):
+    """Input widget for integer data with optional minimum and maximum values."""
+
+    data_getter = "value"
+    data_setter = "setValue"
+    edit_signal = "editingFinished"
+
+    def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
+        editor = QtWidgets.QSpinBox(self)
+        for item in field_info.metadata:
+            if hasattr(item, "ge"):
+                editor.setMinimum(item.ge)
+            if hasattr(item, "gt"):
+                editor.setMinimum(item.gt + 1)
+            if hasattr(item, "le"):
+                editor.setMaximum(item.le)
+            if hasattr(item, "lt"):
+                editor.setMaximum(item.lt - 1)
+
+        return editor
+
+
+class FloatInputWidget(BaseInputWidget):
+    """Input widget for float data with optional minimum and maximum values."""
+
+    data_getter = "value"
+    data_setter = "setValue"
+    edit_signal = "editingFinished"
+
+    def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
+        editor = AdaptiveDoubleSpinBox(self)
+        for item in field_info.metadata:
+            for attr in ["ge", "gt"]:
+                if hasattr(item, attr):
+                    editor.setMinimum(getattr(item, attr))
+            for attr in ["le", "lt"]:
+                if hasattr(item, attr):
+                    editor.setMaximum(getattr(item, attr))
+        # if no default exists, field_info.default is PydanticUndefined not a nonexistent attribute
+        if isinstance(field_info.default, (int, float)) and field_info.default > 0:
+            # set default decimals to order of magnitude of default value
+            editor.setDecimals(-floor(log10(abs(field_info.default))))
+
+        return editor
+
+
+class BoolInputWidget(BaseInputWidget):
+    """Input widget for boolean data."""
+
+    data_getter = "isChecked"
+    data_setter = "setChecked"
+    edit_signal = "checkStateChanged"
+
+    def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
+        return QtWidgets.QCheckBox(self)
+
+
+class EnumInputWidget(BaseInputWidget):
+    """Input widget for Enums."""
+
+    data_getter = "currentText"
+    data_setter = "setCurrentText"
+    edit_signal = "currentTextChanged"
+
+    def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
+        editor = QtWidgets.QComboBox(self)
+        editor.addItems(str(e) for e in field_info.annotation)
+
+        return editor
 
 
 class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
@@ -105,14 +183,14 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
         """
         return f"{round(value, self.decimals()):.{self.decimals()}g}"
 
-    def validate(self, input, pos) -> tuple[QtGui.QValidator.State, str, int]:
+    def validate(self, input_text, pos) -> tuple[QtGui.QValidator.State, str, int]:
         """Validate a string written into the spinbox.
 
         Override of QtWidgets.QDoubleSpinBox.validate.
 
         Parameters
         ----------
-        input : str
+        input_text : str
             The string written into the spinbox.
         pos : int
             The current cursor position.
@@ -123,13 +201,13 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
             The validation state of the input, the input string, and position.
 
         """
-        if "e" in input:
+        if "e" in input_text:
             try:
-                self.setDecimals(-int(input.split("e")[-1]))
-                return (QtGui.QValidator.State.Acceptable, input, pos)
+                self.setDecimals(-int(input_text.split("e")[-1]))
+                return (QtGui.QValidator.State.Acceptable, input_text, pos)
             except ValueError:
-                return (QtGui.QValidator.State.Intermediate, input, pos)
-        if "." in input and len(input.split(".")[-1]) != self.decimals():
-            self.setDecimals(len(input.split(".")[-1]))
-            return (QtGui.QValidator.State.Acceptable, input, pos)
-        return super().validate(input, pos)
+                return (QtGui.QValidator.State.Intermediate, input_text, pos)
+        if "." in input_text and len(input_text.split(".")[-1]) != self.decimals():
+            self.setDecimals(len(input_text.split(".")[-1]))
+            return (QtGui.QValidator.State.Acceptable, input_text, pos)
+        return super().validate(input_text, pos)
