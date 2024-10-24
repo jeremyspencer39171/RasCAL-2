@@ -1,6 +1,6 @@
 import pytest
 
-from rascal2.widgets.startup_widget import StartUpWidget
+from rascal2.widgets.startup import StartUpWidget
 from tests.dialogs.test_project_dialog import MockParentWindow
 
 

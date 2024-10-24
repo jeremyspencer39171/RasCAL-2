@@ -23,10 +23,11 @@ def test_view():
         ((1, 2, 196, 24, True), (3, 78, 196, 24, True), (1, 2, 204, 66, False), (12, 342, 196, 24, True)),
     ],
 )
+@patch("rascal2.ui.view.ProjectWidget.update_project_view")
 @patch("rascal2.ui.view.MainWindowPresenter")
 @patch("rascal2.ui.view.ControlsWidget.setup_controls")
 class TestMDISettings:
-    def test_reset_mdi(self, mock1, mock2, test_view, geometry):
+    def test_reset_mdi(self, mock1, mock2, mock3, test_view, geometry):
         """Test that resetting the MDI works."""
         test_view.settings = Settings()
         test_view.setup_mdi()
@@ -46,7 +47,7 @@ class TestMDISettings:
                 window.isMinimized(),
             )
 
-    def test_set_mdi(self, mock1, mock2, test_view, geometry):
+    def test_set_mdi(self, mock1, mock2, mock3, test_view, geometry):
         """Test that setting the MDI adds the expected object to settings."""
         test_view.settings = Settings()
         test_view.setup_mdi()

@@ -7,6 +7,8 @@ from PyQt6 import QtCore
 class MainWindowModel(QtCore.QObject):
     """Manages project data and communicates to view via signals"""
 
+    project_updated = QtCore.pyqtSignal()
+
     def __init__(self):
         super().__init__()
 
@@ -95,3 +97,14 @@ class MainWindowModel(QtCore.QObject):
         self.project = RAT.utils.convert.r1_to_project_class(load_path)
         self.controls = RAT.Controls()
         self.save_path = str(Path(load_path).parent)
+
+    def edit_project(self, updated_project) -> None:
+        """Updates the project.
+
+        Parameters
+        ----------
+        updated_project : RAT.Project
+            The updated project.
+        """
+        self.project = updated_project
+        self.project_updated.emit()

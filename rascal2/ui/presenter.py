@@ -177,6 +177,16 @@ class MainWindowPresenter:
         elif isinstance(event, LogData):
             self.view.logging.log(event.level, event.msg)
 
+    def edit_project(self, updated_project) -> None:
+        """Updates the project.
+
+        Parameters
+        ----------
+        updated_project : RAT.Project
+            The updated project.
+        """
+        self.model.edit_project(updated_project)
+
 
 # '\d+\.\d+' is the regex for
 # 'some integer, then a decimal point, then another integer'

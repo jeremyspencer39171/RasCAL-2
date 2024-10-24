@@ -78,7 +78,7 @@ class StartupDialog(QtWidgets.QDialog):
             A list of the widgets to be added to the bottom of the dialog, from left to right.
         """
         cancel_button = QtWidgets.QPushButton(" Cancel", self)
-        cancel_button.setIcon(QtGui.QIcon(path_for("cancel.png")))
+        cancel_button.setIcon(QtGui.QIcon(path_for("cancel-light.png")))
         cancel_button.clicked.connect(self.reject)
         cancel_button.setStyleSheet(self._button_style.format("#E34234"))
 
@@ -272,7 +272,7 @@ class LoadDialog(StartupDialog):
 
     def create_buttons(self) -> list[QtWidgets.QWidget]:
         load_button = QtWidgets.QPushButton(" Load", self)
-        load_button.setIcon(QtGui.QIcon(path_for("browse-dark.png")))
+        load_button.setIcon(QtGui.QIcon(path_for("load-light.png")))
         load_button.clicked.connect(self.load_project)
         load_button.setStyleSheet(self._button_style.format("#0D69BB"))
 
@@ -321,7 +321,7 @@ class LoadR1Dialog(StartupDialog):
 
     def create_buttons(self):
         load_button = QtWidgets.QPushButton(" Load", self)
-        load_button.setIcon(QtGui.QIcon(path_for("browse-dark.png")))
+        load_button.setIcon(QtGui.QIcon(path_for("load-light.png")))
         load_button.clicked.connect(self.load_project)
         load_button.setStyleSheet(self._button_style.format("#0D69BB"))
 

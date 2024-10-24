@@ -7,7 +7,8 @@ from rascal2.core.settings import MDIGeometries, Settings
 from rascal2.dialogs.project_dialog import PROJECT_FILES, LoadDialog, LoadR1Dialog, NewProjectDialog, StartupDialog
 from rascal2.dialogs.settings_dialog import SettingsDialog
 from rascal2.widgets import ControlsWidget, TerminalWidget
-from rascal2.widgets.startup_widget import StartUpWidget
+from rascal2.widgets.project import ProjectWidget
+from rascal2.widgets.startup import StartUpWidget
 
 from .presenter import MainWindowPresenter
 
@@ -38,7 +39,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.plotting_widget = QtWidgets.QWidget()
         self.terminal_widget = TerminalWidget(self)
         self.controls_widget = ControlsWidget(self)
-        self.project_widget = QtWidgets.QWidget()
+        self.project_widget = ProjectWidget(self)
 
         self.disabled_elements = []
 
@@ -259,6 +260,7 @@ class MainWindowView(QtWidgets.QMainWindow):
             "Fitting Controls": self.controls_widget,
         }
         self.controls_widget.setup_controls()
+        self.project_widget.update_project_view()
 
         for title, widget in reversed(widgets.items()):
             widget.setWindowTitle(title)
