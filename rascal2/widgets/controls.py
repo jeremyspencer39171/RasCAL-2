@@ -17,6 +17,7 @@ class ControlsWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.presenter = parent.presenter
+        self.presenter.model.controls_updated.connect(self.update_ui)
 
         # create fit settings view and setup connection to model
         self.fit_settings_layout = QtWidgets.QStackedLayout()
@@ -97,8 +98,23 @@ class ControlsWidget(QtWidgets.QWidget):
 
         # set initial procedure to whatever is in the Controls object
         init_procedure = [p.value for p in Procedures].index(self.presenter.model.controls.procedure)
-        self.set_procedure(init_procedure)
         self.procedure_dropdown.setCurrentIndex(init_procedure)
+
+    def update_ui(self):
+        """Updates UI without firing signals to avoid recursion"""
+        init_procedure = [p.value for p in Procedures].index(self.presenter.model.controls.procedure)
+        self.procedure_dropdown.blockSignals(True)
+        self.procedure_dropdown.setCurrentIndex(init_procedure)
+        self.procedure_dropdown.blockSignals(False)
+        self.fit_settings_layout.setCurrentIndex(init_procedure)
+        settings = self.fit_settings_layout.currentWidget()
+        if settings is None:
+            return
+
+        for field, widget in settings.rows.items():
+            widget.editor.blockSignals(True)
+            settings.update_data(field)
+            widget.editor.blockSignals(False)
 
     def toggle_fit_settings(self, toggled: bool):
         """Toggle whether the fit settings table is visible.

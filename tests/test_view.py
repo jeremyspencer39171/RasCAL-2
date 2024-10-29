@@ -90,12 +90,12 @@ def test_get_project_folder(mock_get_dir: MagicMock):
     view.presenter.create_project("test", tmp)
     mock_get_dir.return_value = tmp
 
-    with patch("rascal2.ui.view.show_confirm_dialog", new=mock_overwrite):
+    with patch.object(view, "show_confirm_dialog", new=mock_overwrite):
         assert view.get_project_folder() == tmp
 
     # check overwrite is triggered if project already in folder
     Path(tmp, "controls.json").touch()
-    with patch("rascal2.ui.view.show_confirm_dialog", new=mock_overwrite):
+    with patch.object(view, "show_confirm_dialog", new=mock_overwrite):
         assert view.get_project_folder() == tmp
     mock_overwrite.assert_called_once()
 
@@ -108,7 +108,7 @@ def test_get_project_folder(mock_get_dir: MagicMock):
     # set the mock to change the directory to some other path once called
     mock_overwrite = MagicMock(return_value=False, side_effect=change_dir)
 
-    with patch("rascal2.ui.view.show_confirm_dialog", new=mock_overwrite):
+    with patch.object(view, "show_confirm_dialog", new=mock_overwrite):
         assert view.get_project_folder() == "OTHERPATH"
 
     mock_overwrite.assert_called_once()

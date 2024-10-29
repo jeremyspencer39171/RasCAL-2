@@ -102,25 +102,21 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.save_project_action.setEnabled(False)
         self.disabled_elements.append(self.save_project_action)
 
-        self.undo_action = self.undo_stack.createUndoAction(self, "&Undo")
-        self.undo_action.setStatusTip("Undo the last action")
-        self.undo_action.setIcon(QtGui.QIcon(path_for("undo.png")))
-        self.undo_action.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
-        self.undo_action.setEnabled(False)
-        self.disabled_elements.append(self.undo_action)
-
         self.save_as_action = QtGui.QAction("Save To &Folder...", self)
         self.save_as_action.setStatusTip("Save project to a specified folder.")
         self.save_as_action.setIcon(QtGui.QIcon(path_for("save-project.png")))
         self.save_as_action.triggered.connect(lambda: self.presenter.save_project(save_as=True))
         self.save_as_action.setShortcut(QtGui.QKeySequence.StandardKey.SaveAs)
 
+        self.undo_action = self.undo_stack.createUndoAction(self, "&Undo")
+        self.undo_action.setStatusTip("Undo the last action")
+        self.undo_action.setIcon(QtGui.QIcon(path_for("undo.png")))
+        self.undo_action.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
+
         self.redo_action = self.undo_stack.createRedoAction(self, "&Redo")
         self.redo_action.setStatusTip("Redo the last undone action")
         self.redo_action.setIcon(QtGui.QIcon(path_for("redo.png")))
         self.redo_action.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
-        self.redo_action.setEnabled(False)
-        self.disabled_elements.append(self.redo_action)
 
         self.undo_view_action = QtGui.QAction("Undo &History", self)
         self.undo_view_action.setStatusTip("View undo history")
@@ -261,6 +257,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         }
         self.controls_widget.setup_controls()
         self.project_widget.update_project_view()
+        self.terminal_widget.text_area.setVisible(True)
 
         for title, widget in reversed(widgets.items()):
             widget.setWindowTitle(title)
@@ -345,10 +342,8 @@ class MainWindowView(QtWidgets.QMainWindow):
         project_folder = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
         if project_folder:
             if any(Path(project_folder, file).exists() for file in PROJECT_FILES):
-                overwrite = show_confirm_dialog(
-                    title="Confirm Overwrite",
-                    text="A project already exists in this folder, do you want to replace it?",
-                    parent=self,
+                overwrite = self.show_confirm_dialog(
+                    "Confirm Overwrite", "A project already exists in this folder, do you want to replace it?"
                 )
                 if not overwrite:
                     # return to file selection
@@ -357,23 +352,24 @@ class MainWindowView(QtWidgets.QMainWindow):
 
             return project_folder
 
+    def show_confirm_dialog(self, title: str, message: str) -> bool:
+        """Ask the user to confirm an action.
 
-def show_confirm_dialog(self, title: str, message: str) -> bool:
-    """Ask the user to confirm an action.
+        Parameters
+        ----------
+        title : str
+            The title of the confirm dialog.
+        message : str
+            The message to ask the user.
 
-    Parameters
-    ----------
-    title : str
-        The title of the confirm dialog.
-    message : str
-        The message to ask the user.
+        Returns
+        -------
+        bool
+            Whether the confirmation was affirmative.
+        """
+        buttons = QtWidgets.QMessageBox.StandardButton.Ok | QtWidgets.QMessageBox.StandardButton.Cancel
+        reply = QtWidgets.QMessageBox.question(
+            self, title, message, buttons, QtWidgets.QMessageBox.StandardButton.Cancel
+        )
 
-    Returns
-    -------
-    bool
-        Whether the confirmation was affirmative.
-    """
-    buttons = QtWidgets.QMessageBox.StandardButton.Ok | QtWidgets.QMessageBox.StandardButton.Cancel
-    reply = QtWidgets.QMessageBox.question(self, title, message, buttons, QtWidgets.QMessageBox.StandardButton.Cancel)
-
-    return reply == QtWidgets.QMessageBox.StandardButton.Ok
+        return reply == QtWidgets.QMessageBox.StandardButton.Ok

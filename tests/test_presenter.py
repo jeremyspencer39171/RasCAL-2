@@ -41,7 +41,6 @@ class MockWindowView(QtWidgets.QMainWindow):
 def presenter():
     pr = MainWindowPresenter(MockWindowView())
     pr.runner = MagicMock()
-    pr.model = MagicMock()
     pr.model.controls = Controls()
     pr.model.project = MagicMock()
     pr.model.save_path = "some_path/"
@@ -52,7 +51,7 @@ def presenter():
 @pytest.mark.parametrize(["param", "value"], [("nSamples", 50), ("calcSldDuringFit", True), ("parallel", "contrasts")])
 def test_set_controls_data(presenter, param, value):
     """Check that setting values are correctly propagated to the Controls object."""
-    assert presenter.edit_controls(param, value)
+    presenter.edit_controls(param, value)
     assert getattr(presenter.model.controls, param) == value
 
 

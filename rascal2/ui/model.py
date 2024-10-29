@@ -8,6 +8,7 @@ class MainWindowModel(QtCore.QObject):
     """Manages project data and communicates to view via signals"""
 
     project_updated = QtCore.pyqtSignal()
+    controls_updated = QtCore.pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -47,6 +48,17 @@ class MainWindowModel(QtCore.QObject):
         for class_list in RAT.project.parameter_class_lists:
             for index, value in enumerate(getattr(problem_definition, parameter_field[class_list])):
                 getattr(self.project, class_list)[index].value = value
+
+    def update_controls(self, new_values):
+        """
+
+        Parameters
+        ----------
+        new_values: Dict
+            The attribute name-value pair to updated on the controls.
+        """
+        vars(self.controls).update(new_values)
+        self.controls_updated.emit()
 
     def save_project(self):
         """Save the project to the save path."""

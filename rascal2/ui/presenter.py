@@ -75,8 +75,6 @@ class MainWindowPresenter:
 
         """
         self.view.setWindowTitle(self.title + " - " + name)
-        # TODO if the view's central widget is the startup one then setup MDI else reset the widgets.
-        # https://github.com/RascalSoftware/RasCAL-2/issues/15
         self.view.init_settings_and_log(save_path)
         self.view.setup_mdi()
         self.view.undo_stack.clear()
@@ -108,8 +106,7 @@ class MainWindowPresenter:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.model.controls.model_validate({setting: value})
-            self.view.undo_stack.push(commands.EditControls(self.model.controls, setting, value))
-            return True
+            self.view.undo_stack.push(commands.EditControls(setting, value, self))
 
     def save_project(self, save_as: bool = False):
         """Save the model.

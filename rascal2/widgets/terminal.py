@@ -12,6 +12,10 @@ class TerminalWidget(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.text_area = QtWidgets.QPlainTextEdit()
+        # Something wierd is going on where the text area shows up in the top
+        # left of the main window under the menus not sure why but this a workaround.
+        # So far only happening on Windows 11
+        self.text_area.setVisible(False)
         self.text_area.setReadOnly(True)
         font = QtGui.QFont()
         font.setFamily("Courier")
@@ -90,6 +94,5 @@ class TerminalWidget(QtWidgets.QWidget):
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(int(event.percent * 100))
 
-    # added to make TerminalWidget an IO stream
     def flush(self):
-        pass
+        """Added to make TerminalWidget an IO stream"""
