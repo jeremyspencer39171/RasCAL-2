@@ -146,13 +146,14 @@ class BoolInputWidget(BaseInputWidget):
 class EnumInputWidget(BaseInputWidget):
     """Input widget for Enums."""
 
-    data_getter = "currentText"
+    data_getter = "currentData"
     data_setter = "setCurrentText"
     edit_signal = "currentTextChanged"
 
     def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
         editor = QtWidgets.QComboBox(self)
-        editor.addItems(str(e) for e in field_info.annotation)
+        for e in field_info.annotation:
+            editor.addItem(str(e), e)
 
         return editor
 
