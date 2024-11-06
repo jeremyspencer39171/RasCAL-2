@@ -8,13 +8,15 @@ from pydantic.fields import FieldInfo
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 
-def get_validated_input(field_info: FieldInfo) -> QtWidgets.QWidget:
+def get_validated_input(field_info: FieldInfo, parent=None) -> QtWidgets.QWidget:
     """Get a validated input widget from Pydantic field info.
 
     Parameters
     ----------
     field_info : FieldInfo
         The Pydantic field info for the field.
+    parent : QWidget or None, default None
+        The parent widget of this widget.
 
     Returns
     -------
@@ -31,9 +33,9 @@ def get_validated_input(field_info: FieldInfo) -> QtWidgets.QWidget:
 
     for input_type, widget in class_widgets.items():
         if issubclass(field_info.annotation, input_type):
-            return widget(field_info)
+            return widget(field_info, parent)
 
-    return BaseInputWidget(field_info)
+    return BaseInputWidget(field_info, parent)
 
 
 class BaseInputWidget(QtWidgets.QWidget):
@@ -64,7 +66,7 @@ class BaseInputWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.editor)
-        layout.setContentsMargins(5, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self.setLayout(layout)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -125,7 +127,7 @@ class FloatInputWidget(BaseInputWidget):
                 if hasattr(item, attr):
                     editor.setMaximum(getattr(item, attr))
         # if no default exists, field_info.default is PydanticUndefined not a nonexistent attribute
-        if isinstance(field_info.default, (int, float)) and field_info.default > 0:
+        if isinstance(field_info.default, (int, float)) and 0 < field_info.default < float("inf"):
             # set default decimals to order of magnitude of default value
             editor.setDecimals(-floor(log10(abs(field_info.default))))
 
@@ -161,8 +163,15 @@ class EnumInputWidget(BaseInputWidget):
 class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
     """A double spinbox which adapts to given numbers of decimals."""
 
+    MIN_DECIMALS = 2
+
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # default max and min are 99.99 and 0.0
+        self.setMaximum(float("inf"))
+        self.setMinimum(-float("inf"))
+
         self.setStepType(self.StepType.AdaptiveDecimalStepType)
         self.setKeyboardTracking(False)
 
@@ -182,7 +191,50 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
             The string displayed on the spinbox.
 
         """
-        return f"{round(value, self.decimals()):.{self.decimals()}g}"
+        if value == float("inf"):
+            return "inf"
+        if value == -float("inf"):
+            return "-inf"
+        return f"{round(value, 12):.4g}"
+
+    def valueFromText(self, text: str) -> float:
+        """Set the underlying value of the spinbox from the text input."""
+        if text == "inf":
+            return float("inf")
+        if text == "-inf":
+            return -float("inf")
+        return float(text)
+
+    def setValue(self, value: float):
+        """Hook into setValue that sets the decimals when the value is manually set.
+
+        Parameters
+        ----------
+        value : float
+            The value to set the spinbox to.
+        """
+        state, text, _ = self.validate(str(value), 0)
+        if state == QtGui.QValidator.State.Acceptable:
+            value = float(text)
+            super().setValue(value)
+
+    def stepBy(self, steps: int):
+        """Step the value up or down by some amount.
+
+        Override of QtWidgets.QDoubleSpinBox.stepBy to handle infs.
+
+        Parameters
+        ----------
+        steps : int
+            The number of linesteps to step by.
+
+        """
+        if self.value() == float("inf") and steps < 0:
+            self.setValue(1e12)  # largest possible float that doesn't look ugly in the box
+        if self.value() == -float("inf") and steps > 0:
+            self.setValue(1e-12)  # smallest possible float that pyqt doesn't round to 0
+        else:
+            super().stepBy(steps)
 
     def validate(self, input_text, pos) -> tuple[QtGui.QValidator.State, str, int]:
         """Validate a string written into the spinbox.
@@ -202,9 +254,19 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
             The validation state of the input, the input string, and position.
 
         """
-        if "e" in input_text:
+        if input_text in "inf" or input_text in "-inf":
+            if input_text in ["inf", "-inf"]:
+                return (QtGui.QValidator.State.Acceptable, input_text, pos)
+            else:
+                return (QtGui.QValidator.State.Intermediate, input_text, pos)
+        if "e" in input_text or "E" in input_text:
+            components = input_text.lower().split("e")
+            significand = components[0]
+            significand_decimals = len(significand.split(".")[-1])
+            exponent = components[1]
             try:
-                self.setDecimals(-int(input_text.split("e")[-1]))
+                exponent_order = int(exponent)
+                self.setDecimals(max(significand_decimals - exponent_order, 0))
                 return (QtGui.QValidator.State.Acceptable, input_text, pos)
             except ValueError:
                 return (QtGui.QValidator.State.Intermediate, input_text, pos)

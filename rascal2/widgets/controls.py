@@ -213,6 +213,7 @@ class FitSettingsWidget(QtWidgets.QWidget):
         for i, setting in enumerate(settings):
             field_info = controls_fields[setting]
             self.rows[setting] = get_validated_input(field_info)
+            self.rows[setting].layout().setContentsMargins(5, 0, 0, 0)
             self.datasetter[setting] = self.create_model_data_setter(setting)
             self.rows[setting].edited_signal.connect(self.datasetter[setting])
             label = QtWidgets.QLabel(setting)

@@ -34,4 +34,16 @@ mark-parentheses = false
 [tool.ruff.lint.pep8-naming]
 # if overriding a PyQt method, please add it here!
 # names should be in alphabetical order for readability
-extend-ignore-names = ["allKeys", "createEditor", "mergeWith", "setEditorData", "textFromValue", ]
+extend-ignore-names = ['allKeys',
+                       'columnCount',
+                       'createEditor',
+                       'headerData',
+                       'mergeWith',
+                       'rowCount',
+                       'setData',
+                       'setEditorData',
+                       'setModelData',
+                       'setValue',
+                       'stepBy',
+                       'textFromValue',
+                       'valueFromText',]
