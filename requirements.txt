@@ -1,5 +1,5 @@
 PyInstaller==6.9.0
 PyQt6==6.7.0
 PyQt6-Qt6==6.7.2
-RATapi==0.0.0.dev2
+RATapi==0.0.0.dev3
 pydantic==2.8.2
