@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from PyQt6 import QtWidgets
 from RATapi import Controls
 from RATapi.events import ProgressEventData
+from RATapi.inputs import ProblemDefinition
 
 from rascal2.core.runner import LogData
 from rascal2.ui.presenter import MainWindowPresenter
@@ -81,13 +82,16 @@ def test_run_and_interrupt(mock_runner, mock_inputs, presenter):
     presenter.runner.interrupt.assert_called_once()
 
 
-def test_handle_results(presenter):
+@patch("RATapi.inputs.make_problem")
+def test_handle_results(mock_problem_def, presenter):
     """Test that results are handed to the view correctly."""
     presenter.runner = MagicMock()
-    presenter.runner.results = "TEST RESULTS"
+    presenter.runner.updated_problem = ProblemDefinition()
+    presenter.runner.results = MagicMock()
+    presenter.runner.results.calculationResults.sumChi = 0.04
     presenter.handle_results()
 
-    presenter.view.handle_results.assert_called_once_with("TEST RESULTS")
+    presenter.view.handle_results.assert_called_once_with(presenter.runner.results)
 
 
 def test_stop_run(presenter):

@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from PyQt6 import QtWidgets
 
 from rascal2.core.settings import MDIGeometries, Settings
 from rascal2.ui.view import MainWindowView
@@ -13,7 +14,8 @@ from rascal2.ui.view import MainWindowView
 @pytest.fixture
 def test_view():
     """An instance of MainWindowView."""
-    return MainWindowView()
+    with patch("rascal2.widgets.plot.FigureCanvas", return_value=QtWidgets.QWidget()):
+        yield MainWindowView()
 
 
 @pytest.mark.parametrize(

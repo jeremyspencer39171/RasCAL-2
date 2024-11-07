@@ -15,7 +15,7 @@ class ControlsWidget(QtWidgets.QWidget):
     """Widget for editing the Controls window."""
 
     def __init__(self, parent):
-        super().__init__(parent)
+        super().__init__()
         self.presenter = parent.presenter
         self.presenter.model.controls_updated.connect(self.update_ui)
 

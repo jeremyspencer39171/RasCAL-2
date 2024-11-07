@@ -1,8 +1,10 @@
 """File for Qt commands."""
 
+import copy
 from enum import IntEnum, unique
-from typing import Callable
+from typing import Callable, Union
 
+import RATapi
 from PyQt6 import QtGui
 from RATapi import ClassList
 
@@ -96,3 +98,108 @@ class EditProject(AbstractModelEdit):
 
     def id(self):
         return CommandID.EditProject
+
+
+class SaveCalculationOutputs(QtGui.QUndoCommand):
+    """Command for saving the updated problem, results, and log text from a calculation run.
+
+    Parameters
+    ----------
+    problem : RATapi.rat_core.ProblemDefinition
+        The updated parameter values from a RAT run
+    results : Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]
+        The calculation results.
+    log : str
+        log text from the given calculation.
+    presenter : MainWindowPresenter
+        The RasCAL main window presenter
+    """
+
+    def __init__(
+        self,
+        problem: RATapi.rat_core.ProblemDefinition,
+        results: Union[RATapi.outputs.Results, RATapi.outputs.BayesResults],
+        log: str,
+        presenter,
+    ):
+        super().__init__()
+        self.presenter = presenter
+        self.results = results
+        self.log = log
+        self.problem = self.get_parameter_values(problem)
+        self.old_problem = self.get_parameter_values(RATapi.inputs.make_problem(self.presenter.model.project))
+        self.old_results = copy.deepcopy(self.presenter.model.results)
+        self.old_log = self.presenter.model.result_log
+        self.setText("Save calculation results")
+
+    def get_parameter_values(self, problem: RATapi.rat_core.ProblemDefinition):
+        """Gets updated parameter values from problem definition.
+
+        Parameters
+        ----------
+        problem : RATapi.rat_core.ProblemDefinition
+            The updated parameter values from a RAT run.
+
+        Returns
+        -------
+        values : dict
+            A dict with updated parameter values from a RAT run.
+        """
+        parameter_field = {
+            "parameters": "params",
+            "bulk_in": "bulkIn",
+            "bulk_out": "bulkOut",
+            "scalefactors": "scalefactors",
+            "domain_ratios": "domainRatio",
+            "background_parameters": "backgroundParams",
+            "resolution_parameters": "resolutionParams",
+        }
+
+        values = {}
+        for class_list in RATapi.project.parameter_class_lists:
+            entry = values.setdefault(class_list, [])
+            entry.extend(getattr(problem, parameter_field[class_list]))
+        return values
+
+    def set_parameter_values(self, values: dict):
+        """Updates the parameter values of the project in the main window model.
+
+        Parameters
+        ----------
+        values : dict
+            A dict with updated parameter values from a RAT run
+        """
+        for key, value in values.items():
+            for index in range(len(value)):
+                getattr(self.presenter.model.project, key)[index].value = value[index]
+
+    def undo(self):
+        self.update_calculation_outputs(self.old_problem, self.old_results, self.old_log)
+
+    def redo(self):
+        self.update_calculation_outputs(self.problem, self.results, self.log)
+
+    def update_calculation_outputs(
+        self,
+        problem: RATapi.rat_core.ProblemDefinition,
+        results: Union[RATapi.outputs.Results, RATapi.outputs.BayesResults],
+        log: str,
+    ):
+        """Updates the project, results and log in the main window model
+
+        Parameters
+        ----------
+        problem : RATapi.rat_core.ProblemDefinition
+            The updated parameter values from a RAT run
+        results : Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]
+            The calculation results.
+        log : str
+            log text from the given calculation.
+        """
+        self.set_parameter_values(problem)
+        self.presenter.model.update_results(copy.deepcopy(results))
+        self.presenter.model.result_log = log
+        chi_text = "" if results is None else f"{results.calculationResults.sumChi:.6g}"
+        self.presenter.view.controls_widget.chi_squared.setText(chi_text)
+        self.presenter.view.terminal_widget.clear()
+        self.presenter.view.terminal_widget.write(log)

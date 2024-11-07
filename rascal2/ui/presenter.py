@@ -150,7 +150,14 @@ class MainWindowPresenter:
 
     def handle_results(self):
         """Handle a RAT run being finished."""
-        self.model.handle_results(self.runner.updated_problem)
+        self.view.undo_stack.push(
+            commands.SaveCalculationOutputs(
+                self.runner.updated_problem,
+                self.runner.results,
+                self.view.terminal_widget.text_area.toPlainText(),
+                self,
+            )
+        )
         self.view.handle_results(self.runner.results)
 
     def handle_interrupt(self):
@@ -164,15 +171,18 @@ class MainWindowPresenter:
     def handle_event(self):
         """Handle event data produced by the RAT run."""
         event = self.runner.events.pop(0)
-        if isinstance(event, str):
-            self.view.terminal_widget.write(event)
-            chi_squared = get_live_chi_squared(event, str(self.model.controls.procedure))
-            if chi_squared is not None:
-                self.view.controls_widget.chi_squared.setText(chi_squared)
-        elif isinstance(event, RAT.events.ProgressEventData):
-            self.view.terminal_widget.update_progress(event)
-        elif isinstance(event, LogData):
-            self.view.logging.log(event.level, event.msg)
+        match event:
+            case str():
+                self.view.terminal_widget.write(event)
+                chi_squared = get_live_chi_squared(event, str(self.model.controls.procedure))
+                if chi_squared is not None:
+                    self.view.controls_widget.chi_squared.setText(chi_squared)
+            case RAT.events.ProgressEventData():
+                self.view.terminal_widget.update_progress(event)
+            case RAT.events.PlotEventData():
+                self.view.plot_widget.plot_event(event)
+            case LogData():
+                self.view.logging.log(event.level, event.msg)
 
     def edit_project(self, updated_project: dict) -> None:
         """Edit the Project with a dictionary of attributes.

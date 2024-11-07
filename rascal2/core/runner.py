@@ -80,6 +80,7 @@ def run(queue, rat_inputs: tuple, procedure: str, display: bool):
     if display:
         RAT.events.register(RAT.events.EventTypes.Message, queue.put)
         RAT.events.register(RAT.events.EventTypes.Progress, queue.put)
+        RAT.events.register(RAT.events.EventTypes.Plot, queue.put)
         queue.put(LogData(INFO, "Starting RAT"))
 
     try:

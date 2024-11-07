@@ -24,7 +24,7 @@ class ProjectWidget(QtWidgets.QWidget):
         parent: MainWindowView
                 An instance of the MainWindowView
         """
-        super().__init__(parent)
+        super().__init__()
         self.parent = parent
         self.parent_model = self.parent.presenter.model
 

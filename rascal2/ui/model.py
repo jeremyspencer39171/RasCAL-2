@@ -1,20 +1,35 @@
 from pathlib import Path
+from typing import Union
 
 import RATapi as RAT
+import RATapi.outputs
 from PyQt6 import QtCore
 
 
 class MainWindowModel(QtCore.QObject):
-    """Manages project data and communicates to view via signals"""
+    """Manages project data and communicates to view via signals
+
+    Emits
+    -----
+    project_updated
+        A signal that indicates the project has been updated.
+    controls_updated
+        A signal that indicates the control has been updated.
+    results_updated
+        A signal that indicates the project and results have been updated.
+
+    """
 
     project_updated = QtCore.pyqtSignal()
     controls_updated = QtCore.pyqtSignal()
+    results_updated = QtCore.pyqtSignal()
 
     def __init__(self):
         super().__init__()
 
         self.project = None
         self.results = None
+        self.result_log = ""
         self.controls = None
 
         self.save_path = ""
@@ -33,21 +48,16 @@ class MainWindowModel(QtCore.QObject):
         self.controls = RAT.Controls()
         self.save_path = save_path
 
-    def handle_results(self, problem_definition: RAT.rat_core.ProblemDefinition):
-        """Update the project given a set of results."""
-        parameter_field = {
-            "parameters": "params",
-            "bulk_in": "bulkIn",
-            "bulk_out": "bulkOut",
-            "scalefactors": "scalefactors",
-            "domain_ratios": "domainRatio",
-            "background_parameters": "backgroundParams",
-            "resolution_parameters": "resolutionParams",
-        }
+    def update_results(self, results: Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]):
+        """Update the project given a set of results.
 
-        for class_list in RAT.project.parameter_class_lists:
-            for index, value in enumerate(getattr(problem_definition, parameter_field[class_list])):
-                getattr(self.project, class_list)[index].value = value
+        Parameters
+        ----------
+        results : Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]
+            The calculation results.
+        """
+        self.results = results
+        self.results_updated.emit()
 
     def update_project(self, new_values: dict) -> None:
         """Replaces the project with a new project.
@@ -111,12 +121,12 @@ class MainWindowModel(QtCore.QObject):
         self.controls = RAT.Controls()
         self.save_path = str(Path(load_path).parent)
 
-    def update_controls(self, new_values):
-        """
+    def update_controls(self, new_values: dict):
+        """Update the control attributes.
 
         Parameters
         ----------
-        new_values: Dict
+        new_values: dict
             The attribute name-value pair to updated on the controls.
         """
         vars(self.controls).update(new_values)

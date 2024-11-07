@@ -8,14 +8,10 @@ from rascal2 import RASCAL2_VERSION
 class TerminalWidget(QtWidgets.QWidget):
     """Widget for displaying program output."""
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
 
         self.text_area = QtWidgets.QPlainTextEdit()
-        # Something wierd is going on where the text area shows up in the top
-        # left of the main window under the menus not sure why but this a workaround.
-        # So far only happening on Windows 11
-        self.text_area.setVisible(False)
         self.text_area.setReadOnly(True)
         font = QtGui.QFont()
         font.setFamily("Courier")
