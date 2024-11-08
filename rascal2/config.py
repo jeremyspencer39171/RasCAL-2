@@ -93,14 +93,22 @@ def setup_logging(log_path: str | PathLike, terminal, level: int = logging.INFO)
     return logger
 
 
-def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
-    """Qt slots swallows exceptions but this ensures exceptions are logged"""
+def get_logger():
+    """Get the RasCAL logger, and set up a backup logger if it hasn't been set up yet."""
     logger = logging.getLogger("rascal_log")
     if not logger.handlers:
         # Backup in case the crash happens before the local logger setup
         path = pathlib.Path(get_global_settings().fileName()).parent
         path.mkdir(parents=True, exist_ok=True)
-        logger.addHandler(logging.FileHandler(path / "crash.log"))
+        logger.addHandler(logging.FileHandler(path / "rascal.log"))
+
+    return logger
+
+
+def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
+    """Qt slots swallows exceptions but this ensures exceptions are logged"""
+    logger = get_logger()
+    logger.addHandler(logging.StreamHandler(stream=sys.stderr))  # print emergency crashes to terminal
     logger.critical("An unhandled exception occurred!", exc_info=(exc_type, exc_value, exc_traceback))
     logging.shutdown()
     sys.exit(1)

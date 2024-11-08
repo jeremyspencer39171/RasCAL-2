@@ -7,7 +7,7 @@ from rascal2.config import path_for
 from rascal2.core.settings import update_recent_projects
 
 # global variable for required project files
-PROJECT_FILES = ["controls.json"]
+PROJECT_FILES = ["controls.json", "project.json"]
 
 
 class StartupDialog(QtWidgets.QDialog):

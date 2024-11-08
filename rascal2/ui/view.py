@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from rascal2.config import path_for, setup_logging, setup_settings
+from rascal2.config import get_logger, path_for, setup_logging, setup_settings
 from rascal2.core.settings import MDIGeometries, Settings
 from rascal2.dialogs.project_dialog import PROJECT_FILES, LoadDialog, LoadR1Dialog, NewProjectDialog, StartupDialog
 from rascal2.dialogs.settings_dialog import SettingsDialog
@@ -49,6 +49,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
 
         self.settings = Settings()
+        self.logging = get_logger()
         self.startup_dlg = StartUpWidget(self)
         self.setCentralWidget(self.startup_dlg)
 

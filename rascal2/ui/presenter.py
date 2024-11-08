@@ -48,7 +48,11 @@ class MainWindowPresenter:
             The path from which to load the project.
 
         """
-        self.model.load_project(load_path)
+        try:
+            self.model.load_project(load_path)
+        except ValueError as err:
+            self.view.logging.error(f"Failed to load project at path {load_path}:\n {err}")
+            raise err  # so that it can be captured by the widget
         self.initialise_ui(self.model.project.name, load_path)
 
     def load_r1_project(self, load_path: str):

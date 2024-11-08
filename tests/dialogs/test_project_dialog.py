@@ -188,8 +188,8 @@ def test_recent_projects(recent):
     [
         ([], False),
         (["file.txt, settings.json", "data/"], False),
-        (["controls.json"], True),
-        (["controls.json", "logs/", "plots/", ".otherfile"], True),
+        (["controls.json", "project.json"], True),
+        (["controls.json", "project.json", "logs/", "plots/", ".otherfile"], True),
     ],
 )
 def test_verify_folder(contents, has_project):
