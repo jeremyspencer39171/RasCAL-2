@@ -8,7 +8,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from RATapi.utils.enums import Procedures
 
 from rascal2.config import path_for
-from rascal2.widgets.delegates import ValidatedInputDelegate, ValueSpinBoxDelegate
+from rascal2.widgets.delegates import ParametersDelegate, ValidatedInputDelegate, ValueSpinBoxDelegate
 
 
 class ClassListModel(QtCore.QAbstractTableModel):
@@ -28,12 +28,21 @@ class ClassListModel(QtCore.QAbstractTableModel):
     def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
         super().__init__(parent)
         self.parent = parent
+
+        self.classlist: RATapi.ClassList
+        self.item_type: type
+        self.headers: list[str]
+
+        self.setup_classlist(classlist)
+        self.edit_mode = False
+
+    def setup_classlist(self, classlist: RATapi.ClassList):
+        """Setup the ClassList, type and headers for the model."""
         self.classlist = classlist
         self.item_type = classlist._class_handle
         if not issubclass(self.item_type, pydantic.BaseModel):
             raise NotImplementedError("ClassListModel only works for classlists of Pydantic models!")
         self.headers = list(self.item_type.model_fields)
-        self.edit_mode = False
 
     def rowCount(self, parent=None) -> int:
         return len(self.classlist)
@@ -80,7 +89,12 @@ class ClassListModel(QtCore.QAbstractTableModel):
             and role == QtCore.Qt.ItemDataRole.DisplayRole
             and section != 0
         ):
-            return self.headers[section - 1].replace("_", " ").title()
+            header = self.headers[section - 1]
+            if "SLD" in header:
+                header = header.replace("_", " ")
+            else:
+                header = header.replace("_", " ").title()
+            return header
         return None
 
     def append_item(self):
@@ -296,3 +310,104 @@ class ParameterFieldWidget(ProjectFieldWidget):
         for i in range(0, self.model.rowCount()):
             if i in self.model.protected_indices:
                 self.table.setIndexWidget(self.model.index(i, 0), None)
+
+
+class LayersModel(ClassListModel):
+    """Classlist model for Layers."""
+
+    def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
+        super().__init__(classlist, parent)
+        self.absorption = classlist._class_handle == RATapi.models.AbsorptionLayer
+        self.SLD_imags = {}
+
+    def flags(self, index):
+        flags = super().flags(index)
+        if self.edit_mode:
+            flags |= QtCore.Qt.ItemFlag.ItemIsEditable
+        return flags
+
+    def append_item(self):
+        kwargs = {"thickness": "", "SLD": "", "roughness": ""}
+        if self.absorption:
+            kwargs["SLD_imaginary"] = ""
+        self.classlist.append(self.item_type(**kwargs))
+        self.endResetModel()
+
+    def set_absorption(self, absorption: bool):
+        """Set whether the project is using absorption or not.
+
+        Parameters
+        ----------
+        absorption : bool
+            Whether the project is using absorption.
+
+        """
+        if self.absorption != absorption:
+            self.beginResetModel()
+            self.absorption = absorption
+            if absorption:
+                classlist = RATapi.ClassList(
+                    [
+                        RATapi.models.AbsorptionLayer(
+                            **dict(layer),
+                            SLD_imaginary=self.SLD_imags.get(layer.name, ""),
+                        )
+                        for layer in self.classlist
+                    ]
+                )
+                # set handle manually for if classlist is empty
+                classlist._class_handle = RATapi.models.AbsorptionLayer
+            else:
+                # we save the SLD_imaginary values so that they aren't lost if the
+                # user accidentally toggles absorption off and on!
+                self.SLD_imags = {layer.name: layer.SLD_imaginary for layer in self.classlist}
+                classlist = RATapi.ClassList(
+                    [
+                        RATapi.models.Layer(
+                            name=layer.name,
+                            thickness=layer.thickness,
+                            SLD=layer.SLD_real,
+                            roughness=layer.roughness,
+                            hydration=layer.hydration,
+                            hydrate_with=layer.hydrate_with,
+                        )
+                        for layer in self.classlist
+                    ]
+                )
+                classlist._class_handle = RATapi.models.Layer
+            self.setup_classlist(classlist)
+            self.parent.parent.parent.update_draft_project({"layers": classlist})
+            self.endResetModel()
+
+
+class LayerFieldWidget(ProjectFieldWidget):
+    """Project field widget for Layer objects."""
+
+    classlist_model = LayersModel
+
+    def __init__(self, field, parent):
+        super().__init__(field, parent)
+        self.project_widget = parent.parent
+
+    def set_item_delegates(self):
+        for i in range(1, self.model.columnCount()):
+            if i in [1, self.model.columnCount() - 1]:
+                header = self.model.headers[i - 1]
+                self.table.setItemDelegateForColumn(
+                    i, ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table)
+                )
+            else:
+                self.table.setItemDelegateForColumn(i, ParametersDelegate(self.project_widget, self.table))
+
+    def set_absorption(self, absorption: bool):
+        """Set whether the classlist uses AbsorptionLayers.
+
+        Parameters
+        ----------
+        absorption : bool
+            Whether the classlist should use AbsorptionLayers.
+
+        """
+        self.model.set_absorption(absorption)
+        if self.model.edit_mode:
+            self.edit()

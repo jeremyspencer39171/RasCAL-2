@@ -1,3 +1,4 @@
+import re
 from unittest.mock import MagicMock
 
 import pydantic
@@ -12,10 +13,7 @@ from rascal2.widgets.project.models import (
     ParametersModel,
     ProjectFieldWidget,
 )
-from rascal2.widgets.project.project import (
-    ProjectTabWidget,
-    ProjectWidget,
-)
+from rascal2.widgets.project.project import ProjectTabWidget, ProjectWidget, create_draft_project
 
 
 class MockModel(QtCore.QObject):
@@ -224,7 +222,7 @@ def test_domains_tab(setup_project_widget):
     project_widget.edit_project_button.click()
     project_widget.calculation_combobox.setCurrentText(Calculations.Domains)
     assert project_widget.draft_project["calculation"] == Calculations.Domains
-    project_widget.handle_domains_tab()
+    project_widget.handle_tabs()
 
     domains_tab_index = 5
     assert project_widget.project_tab.isTabVisible(domains_tab_index)
@@ -259,3 +257,64 @@ def test_project_tab_update_model(classlist, param_classlist, edit_mode):
     for field in new_model:
         assert tab.tables[field].model.classlist == new_model[field]
         assert tab.tables[field].model.edit_mode == edit_mode
+
+
+@pytest.mark.parametrize(
+    "input_params",
+    [
+        ([0, 1, 1, 2, 1], [0, 0, 3, 0, 1]),
+        ([0, 0, 0, 1, 0], [0, 0, 1, 1, 0]),
+        ([3, 3, 3, 2, 0], [0, 0, 3, 0, 1]),
+    ],
+)
+@pytest.mark.parametrize("absorption", [True, False])
+def test_project_tab_validate_layers(input_params, absorption):
+    """Test that the project tab produces the correct result for validating the layers tab."""
+    params = ["Param 1", "Param 2", "Invalid Param", ""]
+    if absorption:
+        attrs = ["thickness", "SLD_real", "SLD_imaginary", "roughness", "hydration"]
+        layer_class = RATapi.models.AbsorptionLayer
+    else:
+        attrs = ["thickness", "SLD", "roughness", "hydration"]
+        layer_class = RATapi.models.Layer
+    layers = RATapi.ClassList(
+        [
+            layer_class(**{attr: params[input_params[0][i]] for i, attr in enumerate(attrs)}),
+            layer_class(**{attr: params[input_params[1][i]] for i, attr in enumerate(attrs)}),
+        ]
+    )
+
+    expected_err = []
+    for i, layer in enumerate(layers):
+        missing_params = [p for j, p in enumerate(attrs) if input_params[i][j] == 3]
+        invalid_params = [p for j, p in enumerate(attrs) if input_params[i][j] == 2]
+
+        if missing_params:
+            noun = "a parameter" if len(missing_params) == 1 else "parameters"
+            msg = f"Layer '{layer.name}' (row {i+1}) is missing {noun}: {', '.join(missing_params)}"
+            expected_err.append(msg)
+        if invalid_params:
+            noun = "an invalid value" if len(invalid_params) == 1 else "invalid values"
+            msg = (
+                f"Layer '{layer.name}' (row {i+1}) has {noun}: "
+                f"{', '.join(f'"Invalid Param" for parameter {p}' for p in invalid_params)}"
+            )
+            expected_err.append(msg)
+
+    draft = create_draft_project(RATapi.Project())
+    draft["layers"] = layers
+    draft["parameters"] = RATapi.ClassList(
+        [
+            RATapi.models.Parameter(name="Param 1"),
+            RATapi.models.Parameter(name="Param 2"),
+        ]
+    )
+
+    project = ProjectWidget(parent)
+    project.draft_project = draft
+
+    if not expected_err:
+        project.validate_draft_project()
+    else:
+        with pytest.raises(ValueError, match=re.escape("\n  ".join(expected_err))):
+            project.validate_draft_project()

@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from RATapi.utils.enums import Calculations, Geometries, LayerModels
 
 from rascal2.config import path_for
-from rascal2.widgets.project.models import ParameterFieldWidget, ProjectFieldWidget
+from rascal2.widgets.project.models import LayerFieldWidget, ParameterFieldWidget, ProjectFieldWidget
 
 
 class ProjectWidget(QtWidgets.QWidget):
@@ -34,7 +34,7 @@ class ProjectWidget(QtWidgets.QWidget):
         self.tabs = {
             "Parameters": ["parameters"],
             "Experimental Parameters": ["scalefactors", "bulk_in", "bulk_out"],
-            "Layers": [],
+            "Layers": ["layers"],
             "Data": [],
             "Backgrounds": [],
             "Contrasts": [],
@@ -62,14 +62,29 @@ class ProjectWidget(QtWidgets.QWidget):
     def create_project_view(self) -> None:
         """Creates the project (non-edit) view"""
         project_widget = QtWidgets.QWidget()
-        main_layout = QtWidgets.QGridLayout()
-        main_layout.setVerticalSpacing(20)
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setSpacing(20)
 
         self.edit_project_button = QtWidgets.QPushButton(
             "Edit Project", self, objectName="bluebutton", icon=QtGui.QIcon(path_for("edit.png"))
         )
         self.edit_project_button.clicked.connect(self.show_edit_view)
-        main_layout.addWidget(self.edit_project_button, 0, 5)
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+        button_layout.addWidget(self.edit_project_button)
+
+        main_layout.addLayout(button_layout)
+
+        settings_layout = QtWidgets.QHBoxLayout()
+        settings_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+
+        absorption_label = QtWidgets.QLabel("Absorption:", self, objectName="boldlabel")
+        self.absorption_checkbox = QtWidgets.QCheckBox()
+        # this is how you make a checkbox read-only but still checkable from inside code...
+        self.absorption_checkbox.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+        settings_layout.addWidget(absorption_label)
+        settings_layout.addWidget(self.absorption_checkbox)
 
         self.calculation_label = QtWidgets.QLabel("Calculation:", self, objectName="boldlabel")
 
@@ -77,8 +92,8 @@ class ProjectWidget(QtWidgets.QWidget):
         self.calculation_type.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.calculation_type.setReadOnly(True)
 
-        main_layout.addWidget(self.calculation_label, 1, 0, 1, 1)
-        main_layout.addWidget(self.calculation_type, 1, 1, 1, 1)
+        settings_layout.addWidget(self.calculation_label)
+        settings_layout.addWidget(self.calculation_type)
 
         self.model_type_label = QtWidgets.QLabel("Model Type:", self, objectName="boldlabel")
 
@@ -86,8 +101,8 @@ class ProjectWidget(QtWidgets.QWidget):
         self.model_type.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.model_type.setReadOnly(True)
 
-        main_layout.addWidget(self.model_type_label, 1, 2, 1, 1)
-        main_layout.addWidget(self.model_type, 1, 3, 1, 1)
+        settings_layout.addWidget(self.model_type_label)
+        settings_layout.addWidget(self.model_type)
 
         self.geometry_label = QtWidgets.QLabel("Geometry:", self, objectName="boldlabel")
 
@@ -95,8 +110,10 @@ class ProjectWidget(QtWidgets.QWidget):
         self.geometry_type.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.geometry_type.setReadOnly(True)
 
-        main_layout.addWidget(self.geometry_label, 1, 4, 1, 1)
-        main_layout.addWidget(self.geometry_type, 1, 5, 1, 1)
+        settings_layout.addWidget(self.geometry_label)
+        settings_layout.addWidget(self.geometry_type)
+
+        main_layout.addLayout(settings_layout)
 
         self.project_tab = QtWidgets.QTabWidget()
 
@@ -104,7 +121,7 @@ class ProjectWidget(QtWidgets.QWidget):
             widget = self.view_tabs[tab] = ProjectTabWidget(fields, self)
             self.project_tab.addTab(widget, tab)
 
-        main_layout.addWidget(self.project_tab, 2, 0, 1, 6)
+        main_layout.addWidget(self.project_tab)
         project_widget.setLayout(main_layout)
 
         return project_widget
@@ -124,47 +141,72 @@ class ProjectWidget(QtWidgets.QWidget):
         self.cancel_button.setIcon(QtGui.QIcon(path_for("cancel-dark.png")))
         self.cancel_button.clicked.connect(self.cancel_changes)
 
-        layout = QtWidgets.QHBoxLayout()
-        layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.save_project_button)
-        layout.addWidget(self.cancel_button)
-        main_layout.addLayout(layout)
+        buttons_layout = QtWidgets.QHBoxLayout()
+        buttons_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+        buttons_layout.addWidget(self.save_project_button)
+        buttons_layout.addWidget(self.cancel_button)
+        main_layout.addLayout(buttons_layout)
+
+        settings_layout = QtWidgets.QHBoxLayout()
+        settings_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+
+        absorption_label = QtWidgets.QLabel("Absorption:", self, objectName="boldlabel")
+        self.edit_absorption_checkbox = QtWidgets.QCheckBox()
+
+        settings_layout.addWidget(absorption_label)
+        settings_layout.addWidget(self.edit_absorption_checkbox)
 
         self.edit_calculation_label = QtWidgets.QLabel("Calculation:", self, objectName="boldlabel")
 
         self.calculation_combobox = QtWidgets.QComboBox(self)
+        self.calculation_combobox.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Fixed
+        )
         self.calculation_combobox.addItems([calc for calc in Calculations])
 
-        layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(self.edit_calculation_label)
-        layout.addWidget(self.calculation_combobox)
+        settings_layout.addWidget(self.edit_calculation_label)
+        settings_layout.addWidget(self.calculation_combobox)
 
         self.edit_model_type_label = QtWidgets.QLabel("Model Type:", self, objectName="boldlabel")
 
         self.model_combobox = QtWidgets.QComboBox(self)
+        self.model_combobox.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Fixed
+        )
         self.model_combobox.addItems([model for model in LayerModels])
 
-        layout.addWidget(self.edit_model_type_label)
-        layout.addWidget(self.model_combobox)
+        settings_layout.addWidget(self.edit_model_type_label)
+        settings_layout.addWidget(self.model_combobox)
 
         self.edit_geometry_label = QtWidgets.QLabel("Geometry:", self, objectName="boldlabel")
 
         self.geometry_combobox = QtWidgets.QComboBox(self)
+        self.geometry_combobox.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Fixed
+        )
         self.geometry_combobox.addItems([geo for geo in Geometries])
 
-        layout.addWidget(self.edit_geometry_label)
-        layout.addWidget(self.geometry_combobox)
-        main_layout.addLayout(layout)
+        settings_layout.addWidget(self.edit_geometry_label)
+        settings_layout.addWidget(self.geometry_combobox)
+        main_layout.addLayout(settings_layout)
 
+        self.edit_absorption_checkbox.checkStateChanged.connect(
+            lambda s: self.update_draft_project({"absorption": s == QtCore.Qt.CheckState.Checked})
+        )
         self.calculation_combobox.currentTextChanged.connect(lambda s: self.update_draft_project({"calculation": s}))
-        self.calculation_combobox.currentTextChanged.connect(lambda: self.handle_domains_tab())
+        self.calculation_combobox.currentTextChanged.connect(lambda: self.handle_tabs())
         self.model_combobox.currentTextChanged.connect(lambda s: self.update_draft_project({"model": s}))
+        self.model_combobox.currentTextChanged.connect(lambda: self.handle_tabs())
         self.geometry_combobox.currentTextChanged.connect(lambda s: self.update_draft_project({"geometry": s}))
         self.edit_project_tab = QtWidgets.QTabWidget()
 
         for tab, fields in self.tabs.items():
             widget = self.edit_tabs[tab] = ProjectTabWidget(fields, self, edit_mode=True)
             self.edit_project_tab.addTab(widget, tab)
+
+        self.edit_absorption_checkbox.checkStateChanged.connect(
+            lambda s: self.edit_tabs["Layers"].tables["layers"].set_absorption(s == QtCore.Qt.CheckState.Checked)
+        )
 
         main_layout.addWidget(self.edit_project_tab)
 
@@ -178,10 +220,12 @@ class ProjectWidget(QtWidgets.QWidget):
         # because we don't want validation errors going off while editing the model is in-progress
         self.draft_project: dict = create_draft_project(self.parent_model.project)
 
+        self.absorption_checkbox.setChecked(self.parent_model.project.absorption)
         self.calculation_type.setText(self.parent_model.project.calculation)
         self.model_type.setText(self.parent_model.project.model)
         self.geometry_type.setText(self.parent_model.project.geometry)
 
+        self.edit_absorption_checkbox.setChecked(self.parent_model.project.absorption)
         self.calculation_combobox.setCurrentText(self.parent_model.project.calculation)
         self.model_combobox.setCurrentText(self.parent_model.project.model)
         self.geometry_combobox.setCurrentText(self.parent_model.project.geometry)
@@ -190,7 +234,7 @@ class ProjectWidget(QtWidgets.QWidget):
             self.view_tabs[tab].update_model(self.draft_project)
             self.edit_tabs[tab].update_model(self.draft_project)
 
-        self.handle_domains_tab()
+        self.handle_tabs()
         self.handle_controls_update()
 
     def update_draft_project(self, new_values: dict) -> None:
@@ -205,12 +249,19 @@ class ProjectWidget(QtWidgets.QWidget):
         """
         self.draft_project.update(new_values)
 
-    def handle_domains_tab(self) -> None:
-        """Displays or hides the domains tab"""
+    def handle_tabs(self) -> None:
+        """Displays or hides tabs as relevant."""
+        # the domains tab should only be visible if calculating domains
         domain_tab_index = list(self.view_tabs).index("Domains")
         is_domains = self.calculation_combobox.currentText() == Calculations.Domains
         self.project_tab.setTabVisible(domain_tab_index, is_domains)
         self.edit_project_tab.setTabVisible(domain_tab_index, is_domains)
+
+        # the layers tab should only be visible in standard layers
+        layers_tab_index = list(self.view_tabs).index("Layers")
+        is_layers = self.model_combobox.currentText() == LayerModels.StandardLayers
+        self.project_tab.setTabVisible(layers_tab_index, is_layers)
+        self.edit_project_tab.setTabVisible(layers_tab_index, is_layers)
 
     def handle_controls_update(self):
         """Handle updates to Controls that need to be reflected in the project."""
@@ -236,9 +287,47 @@ class ProjectWidget(QtWidgets.QWidget):
 
     def save_changes(self) -> None:
         """Save changes to the project."""
-        self.parent.presenter.edit_project(self.draft_project)
-        self.update_project_view()
-        self.show_project_view()
+        try:
+            self.validate_draft_project()
+        except ValueError as err:
+            self.parent.terminal_widget.write_error(f"Could not save draft project:\n  {err}")
+        else:
+            self.parent.presenter.edit_project(self.draft_project)
+            self.update_project_view()
+            self.show_project_view()
+
+    def validate_draft_project(self):
+        """Check that the draft project is valid."""
+        errors = []
+        if self.draft_project["model"] == LayerModels.StandardLayers and self.draft_project["layers"]:
+            layer_attrs = list(self.draft_project["layers"][0].model_fields)
+            layer_attrs.remove("name")
+            layer_attrs.remove("hydrate_with")
+            # ensure all layer parameters have been filled in, and all names are layers that exist
+            valid_params = [p.name for p in self.draft_project["parameters"]]
+            for i, layer in enumerate(self.draft_project["layers"]):
+                missing_params = []
+                invalid_params = []
+                for attr in layer_attrs:
+                    param = getattr(layer, attr)
+                    if param == "":
+                        missing_params.append(attr)
+                    elif param not in valid_params:
+                        invalid_params.append((attr, param))
+
+                if missing_params:
+                    noun = "a parameter" if len(missing_params) == 1 else "parameters"
+                    msg = f"Layer '{layer.name}' (row {i+1}) is missing {noun}: {', '.join(missing_params)}"
+                    errors.append(msg)
+                if invalid_params:
+                    noun = "an invalid value" if len(invalid_params) == 1 else "invalid values"
+                    msg = f"Layer '{layer.name}' (row {i+1}) has {noun}: " "{0}".format(
+                        ",\n  ".join(f'"{v}" for parameter {p}' for p, v in invalid_params)
+                    )
+                    errors.append(msg)
+
+        if errors:
+            raise ValueError("\n  ".join(errors))
 
     def cancel_changes(self) -> None:
         """Cancel changes to the project."""
@@ -271,6 +360,8 @@ class ProjectTabWidget(QtWidgets.QWidget):
         for field in self.fields:
             if field in RATapi.project.parameter_class_lists:
                 self.tables[field] = ParameterFieldWidget(field, self)
+            elif field == "layers":
+                self.tables[field] = LayerFieldWidget(field, self)
             else:
                 self.tables[field] = ProjectFieldWidget(field, self)
             layout.addWidget(self.tables[field])
@@ -302,6 +393,8 @@ class ProjectTabWidget(QtWidgets.QWidget):
             table.update_model(classlist)
             if self.edit_mode:
                 table.edit()
+            if "layers" in self.tables:
+                self.tables["layers"].set_absorption(new_model["absorption"])
 
     def handle_controls_update(self, controls):
         """Reflect changes to the Controls object."""

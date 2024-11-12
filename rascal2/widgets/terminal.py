@@ -73,6 +73,17 @@ class TerminalWidget(QtWidgets.QWidget):
         """
         self.text_area.appendHtml(text.rstrip())
 
+    def write_error(self, text: str):
+        """Append error text to the terminal and alert the user.
+
+        Parameters
+        ----------
+        text : str
+            The text to append.
+
+        """
+        self.write_html(f'<div style="color: crimson;white-space: pre-line;"><b>{text}</b></div>')
+
     def clear(self):
         """Clear the text in the terminal."""
         self.text_area.setPlainText("")

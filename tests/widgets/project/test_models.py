@@ -9,6 +9,8 @@ import rascal2.widgets.delegates as delegates
 import rascal2.widgets.inputs as inputs
 from rascal2.widgets.project.models import (
     ClassListModel,
+    LayerFieldWidget,
+    LayersModel,
     ParameterFieldWidget,
     ParametersModel,
     ProjectFieldWidget,
@@ -260,3 +262,94 @@ def test_hidden_bayesian_columns(param_classlist):
     for item in bayesian_columns:
         index = widget.model.headers.index(item)
         assert not widget.table.isColumnHidden(index + 1)
+
+
+def test_layer_model_init():
+    """Test that LayersModels have the correct absorption value based on the initial input."""
+    init_list = RATapi.ClassList()
+    init_list._class_handle = RATapi.models.Layer
+
+    model = LayersModel(init_list, parent)
+    assert not model.absorption
+
+    init_list._class_handle = RATapi.models.AbsorptionLayer
+    model = LayersModel(init_list, parent)
+    assert model.absorption
+
+
+def test_layer_model_append():
+    """Test that LayersModels appends the correct item based on absorption value."""
+    init_list = RATapi.ClassList()
+    init_list._class_handle = RATapi.models.Layer
+    model = LayersModel(init_list, parent)
+    model.parent = MagicMock()
+
+    model.append_item()
+
+    assert isinstance(model.classlist[0], RATapi.models.Layer)
+
+    del model.classlist[0]
+    model.set_absorption(True)
+    model.append_item()
+
+    assert isinstance(model.classlist[0], RATapi.models.AbsorptionLayer)
+
+
+def test_layer_model_set_absorption():
+    """Test that the layer model layers are converted when set_absorption is called."""
+    init_list = RATapi.ClassList(
+        [
+            RATapi.models.Layer(name="A", thickness="AT", SLD="AS", roughness="AR", hydrate_with="bulk in"),
+            RATapi.models.Layer(name="B", thickness="BT", SLD="BS", roughness="BR"),
+            RATapi.models.Layer(name="C", thickness="CT", SLD="CS", roughness="CR", hydration="CH"),
+        ]
+    )
+
+    model = LayersModel(init_list, parent)
+    model.parent = MagicMock()
+
+    model.set_absorption(True)
+    for expected, actual in zip(init_list, model.classlist):
+        assert isinstance(actual, RATapi.models.AbsorptionLayer)
+        assert expected.name == actual.name
+        assert expected.thickness == actual.thickness
+        assert expected.SLD == actual.SLD_real  # noqa: SIM300  (false positive)
+        assert expected.roughness == actual.roughness
+
+    model.classlist[1].SLD_imaginary = "BSI"
+
+    model.set_absorption(False)
+    assert model.classlist == init_list
+    assert model.SLD_imags == {"A": "", "B": "BSI", "C": ""}
+
+    model.set_absorption(True)
+    assert model.classlist[1].SLD_imaginary == "BSI"
+
+
+@pytest.mark.parametrize("init_class", [RATapi.models.Layer, RATapi.models.AbsorptionLayer])
+def test_layer_widget_delegates(init_class):
+    """Test that the LayerFieldWidget has the expected delegates."""
+    init_list = RATapi.ClassList(
+        [
+            init_class(thickness="AT", SLD="AS", roughness="AR"),
+            init_class(thickness="BT", SLD="BS", roughness="BR"),
+            init_class(thickness="CT", SLD="CS", roughness="CR"),
+        ]
+    )
+
+    expected_delegates = {
+        "name": delegates.ValidatedInputDelegate,
+        "thickness": delegates.ParametersDelegate,
+        "SLD": delegates.ParametersDelegate,
+        "SLD_real": delegates.ParametersDelegate,
+        "SLD_imaginary": delegates.ParametersDelegate,
+        "roughness": delegates.ParametersDelegate,
+        "hydration": delegates.ParametersDelegate,
+        "hydrate_with": delegates.ValidatedInputDelegate,
+    }
+
+    widget = LayerFieldWidget("test", parent)
+    widget.update_model(init_list)
+
+    for i, header in enumerate(widget.model.headers):
+        assert isinstance(widget.table.itemDelegateForColumn(i + 1), expected_delegates[header])
