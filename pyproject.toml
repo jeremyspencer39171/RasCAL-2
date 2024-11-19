@@ -22,6 +22,7 @@ version = {attr = "rascal2.RASCAL2_VERSION"}
 
 [tool.ruff]
 line-length = 120
+extend-exclude = ["examples/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "UP", "B", "SIM", "I", "N", "TD003", "A"]

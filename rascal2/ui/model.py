@@ -97,7 +97,7 @@ class MainWindowModel(QtCore.QObject):
         """
         controls_file = Path(load_path, "controls.json")
         try:
-            controls = RAT.Controls.model_validate_json(controls_file.read_text())
+            controls = RAT.Controls.model_validate_json(controls_file.read_text().rstrip())
         except ValueError as err:
             raise ValueError(
                 "The controls.json file for this project is not valid.\n"
@@ -106,7 +106,7 @@ class MainWindowModel(QtCore.QObject):
 
         project_file = Path(load_path, "project.json")
         try:
-            project = RAT.utils.convert.project_from_json(project_file.read_text())
+            project = RAT.utils.convert.project_from_json(project_file.read_text().rstrip())
         except JSONDecodeError as err:
             raise ValueError("The project.json file for this project contains invalid JSON.") from err
         except (KeyError, ValueError) as err:
