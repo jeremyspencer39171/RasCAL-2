@@ -7,7 +7,12 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from RATapi.utils.enums import Calculations, Geometries, LayerModels
 
 from rascal2.config import path_for
-from rascal2.widgets.project.models import LayerFieldWidget, ParameterFieldWidget, ProjectFieldWidget
+from rascal2.widgets.project.models import (
+    DomainContrastWidget,
+    LayerFieldWidget,
+    ParameterFieldWidget,
+    ProjectFieldWidget,
+)
 
 
 class ProjectWidget(QtWidgets.QWidget):
@@ -37,8 +42,8 @@ class ProjectWidget(QtWidgets.QWidget):
             "Layers": ["layers"],
             "Data": [],
             "Backgrounds": [],
+            "Domains": ["domain_ratios", "domain_contrasts"],
             "Contrasts": [],
-            "Domains": [],
         }
 
         self.view_tabs = {}
@@ -257,11 +262,13 @@ class ProjectWidget(QtWidgets.QWidget):
         self.project_tab.setTabVisible(domain_tab_index, is_domains)
         self.edit_project_tab.setTabVisible(domain_tab_index, is_domains)
 
-        # the layers tab should only be visible in standard layers
+        # the layers tab and domain contrasts table should only be visible in standard layers
         layers_tab_index = list(self.view_tabs).index("Layers")
         is_layers = self.model_combobox.currentText() == LayerModels.StandardLayers
         self.project_tab.setTabVisible(layers_tab_index, is_layers)
         self.edit_project_tab.setTabVisible(layers_tab_index, is_layers)
+        self.view_tabs["Domains"].tables["domain_contrasts"].setVisible(is_layers)
+        self.edit_tabs["Domains"].tables["domain_contrasts"].setVisible(is_layers)
 
     def handle_controls_update(self):
         """Handle updates to Controls that need to be reflected in the project."""
@@ -362,6 +369,8 @@ class ProjectTabWidget(QtWidgets.QWidget):
                 self.tables[field] = ParameterFieldWidget(field, self)
             elif field == "layers":
                 self.tables[field] = LayerFieldWidget(field, self)
+            elif field == "domain_contrasts":
+                self.tables[field] = DomainContrastWidget(field, self)
             else:
                 self.tables[field] = ProjectFieldWidget(field, self)
             layout.addWidget(self.tables[field])

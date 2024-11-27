@@ -9,6 +9,8 @@ import rascal2.widgets.delegates as delegates
 import rascal2.widgets.inputs as inputs
 from rascal2.widgets.project.models import (
     ClassListModel,
+    DomainContrastWidget,
+    DomainsModel,
     LayerFieldWidget,
     LayersModel,
     ParameterFieldWidget,
@@ -34,7 +36,13 @@ class DataModel(pydantic.BaseModel, validate_assignment=True):
 @pytest.fixture
 def classlist():
     """A test ClassList."""
-    return RATapi.ClassList([DataModel(name="A", value=1), DataModel(name="B", value=6), DataModel(name="C", value=18)])
+    return RATapi.ClassList(
+        [
+            DataModel(name="A", value=1),
+            DataModel(name="B", value=6),
+            DataModel(name="C", value=18),
+        ]
+    )
 
 
 @pytest.fixture
@@ -54,6 +62,17 @@ def param_classlist():
         )
 
     return _classlist
+
+
+@pytest.fixture
+def domains_classlist():
+    return RATapi.ClassList(
+        [
+            RATapi.models.DomainContrast(name="A", model=["LA"]),
+            RATapi.models.DomainContrast(name="B", model=["LB", "LB2", "LB3"]),
+            RATapi.models.DomainContrast(name="C", model=["LC", "LC2"]),
+        ]
+    )
 
 
 @pytest.fixture
@@ -353,3 +372,21 @@ def test_layer_widget_delegates(init_class):
 
     for i, header in enumerate(widget.model.headers):
         assert isinstance(widget.table.itemDelegateForColumn(i + 1), expected_delegates[header])
+
+
+@pytest.mark.parametrize("edit_mode", [True, False])
+def test_domains_model_flags(edit_mode, domains_classlist):
+    """Test that the DomainsModel flags are set correctly."""
+    model = DomainsModel(domains_classlist, parent)
+    model.edit_mode = edit_mode
+    for row in [0, 1, 2]:
+        for column in [1, 2]:
+            assert bool(model.flags(model.index(row, column)) & QtCore.Qt.ItemFlag.ItemIsEditable) == edit_mode
+
+
+def test_domains_widget_item_delegates(domains_classlist):
+    """Test that the domains widget has the expected item delegates."""
+    widget = DomainContrastWidget("Test", parent)
+    widget.update_model(domains_classlist)
+    assert isinstance(widget.table.itemDelegateForColumn(1), delegates.ValidatedInputDelegate)
+    assert isinstance(widget.table.itemDelegateForColumn(2), delegates.MultiSelectLayerDelegate)

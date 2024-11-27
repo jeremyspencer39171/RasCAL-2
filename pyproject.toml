@@ -36,15 +36,21 @@ mark-parentheses = false
 # if overriding a PyQt method, please add it here!
 # names should be in alphabetical order for readability
 extend-ignore-names = ['allKeys',
+                       'addItem',
+                       'addItems',
                        'columnCount',
                        'createEditor',
+                       'eventFilter',
                        'headerData',
                        'mergeWith',
+                       'resizeEvent',
                        'rowCount',
                        'setData',
                        'setEditorData',
                        'setModelData',
                        'setValue',
+                       'showEvent',
+                       'sizeHint',
                        'stepBy',
                        'textFromValue',
                        'valueFromText',]

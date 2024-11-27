@@ -4,7 +4,7 @@ from typing import Literal
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
-from rascal2.widgets.inputs import AdaptiveDoubleSpinBox, get_validated_input
+from rascal2.widgets.inputs import AdaptiveDoubleSpinBox, MultiSelectComboBox, get_validated_input
 
 
 class ValidatedInputDelegate(QtWidgets.QStyledItemDelegate):
@@ -100,4 +100,32 @@ class ParametersDelegate(QtWidgets.QStyledItemDelegate):
 
     def setModelData(self, editor, model, index):
         data = editor.currentText()
+        model.setData(index, data, QtCore.Qt.ItemDataRole.EditRole)
+
+
+class MultiSelectLayerDelegate(QtWidgets.QStyledItemDelegate):
+    """Item delegate for multiselecting layers."""
+
+    def __init__(self, project_widget, parent):
+        super().__init__(parent)
+        self.project_widget = project_widget
+
+    def createEditor(self, parent, option, index):
+        widget = MultiSelectComboBox(parent)
+
+        layers = self.project_widget.draft_project["layers"]
+        widget.addItems([layer.name for layer in layers])
+
+        return widget
+
+    def setEditorData(self, editor: MultiSelectComboBox, index):
+        # index.data produces the display string rather than the underlying data,
+        # so we split it back into a list here
+        data = index.data(QtCore.Qt.ItemDataRole.DisplayRole).split(", ")
+        layers = self.project_widget.draft_project["layers"]
+
+        editor.select_indices([i for i, layer in enumerate(layers) if layer.name in data])
+
+    def setModelData(self, editor, model, index):
+        data = editor.selected_items()
         model.setData(index, data, QtCore.Qt.ItemDataRole.EditRole)

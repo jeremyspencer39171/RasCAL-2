@@ -8,7 +8,12 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from RATapi.utils.enums import Procedures
 
 from rascal2.config import path_for
-from rascal2.widgets.delegates import ParametersDelegate, ValidatedInputDelegate, ValueSpinBoxDelegate
+from rascal2.widgets.delegates import (
+    MultiSelectLayerDelegate,
+    ParametersDelegate,
+    ValidatedInputDelegate,
+    ValueSpinBoxDelegate,
+)
 
 
 class ClassListModel(QtCore.QAbstractTableModel):
@@ -63,6 +68,8 @@ class ClassListModel(QtCore.QAbstractTableModel):
             # pyqt can't automatically coerce enums to strings...
             if isinstance(data, Enum):
                 return str(data)
+            if isinstance(data, list):
+                return ", ".join(data)
             return data
         elif role == QtCore.Qt.ItemDataRole.CheckStateRole and self.index_header(index) == "fit":
             return QtCore.Qt.CheckState.Checked if data else QtCore.Qt.CheckState.Unchecked
@@ -380,6 +387,16 @@ class LayersModel(ClassListModel):
             self.endResetModel()
 
 
+class ContrastsModel(ClassListModel):
+    """Classlist model for Contrasts."""
+
+    def flags(self, index):
+        flags = super().flags(index)
+        if self.edit_mode:
+            flags |= QtCore.Qt.ItemFlag.ItemIsEditable
+        return flags
+
+
 class LayerFieldWidget(ProjectFieldWidget):
     """Project field widget for Layer objects."""
 
@@ -411,3 +428,36 @@ class LayerFieldWidget(ProjectFieldWidget):
         self.model.set_absorption(absorption)
         if self.model.edit_mode:
             self.edit()
+
+
+class DomainsModel(ClassListModel):
+    """Classlist model for domain contrasts."""
+
+    def flags(self, index):
+        flags = super().flags(index)
+        if self.edit_mode:
+            flags |= QtCore.Qt.ItemFlag.ItemIsEditable
+        return flags
+
+
+class DomainContrastWidget(ProjectFieldWidget):
+    """Subclass of field widgets for domain contrasts."""
+
+    classlist_model = DomainsModel
+
+    def __init__(self, field, parent):
+        super().__init__(field, parent)
+        self.project_widget = parent.parent
+
+    def update_model(self, classlist):
+        super().update_model(classlist)
+
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Stretch)
+
+    def set_item_delegates(self):
+        self.table.setItemDelegateForColumn(
+            1, ValidatedInputDelegate(self.model.item_type.model_fields["name"], self.table)
+        )
+        self.table.setItemDelegateForColumn(2, MultiSelectLayerDelegate(self.project_widget, self.table))

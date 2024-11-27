@@ -274,3 +274,161 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
             self.setDecimals(len(input_text.split(".")[-1]))
             return (QtGui.QValidator.State.Acceptable, input_text, pos)
         return super().validate(input_text, pos)
+
+
+class MultiSelectComboBox(QtWidgets.QComboBox):
+    """
+    A custom combo box widget that allows for multi-select functionality.
+
+    This widget provides the ability to select multiple items from a
+    dropdown list and display them in a comma-separated format in the
+    combo box's line edit area.
+
+    This is a simplified version of the combobox in
+    https://github.com/user0706/pyqt6-multiselect-combobox (MIT License)
+
+    """
+
+    class Delegate(QtWidgets.QStyledItemDelegate):
+        def sizeHint(self, option, index):
+            size = super().sizeHint(option, index)
+            size.setHeight(20)
+            return size
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.setEditable(True)
+        self.lineEdit().setReadOnly(True)
+
+        self.setItemDelegate(MultiSelectComboBox.Delegate())
+
+        self.model().dataChanged.connect(self.update_text)
+        self.lineEdit().installEventFilter(self)
+        self.view().viewport().installEventFilter(self)
+
+    def resizeEvent(self, event) -> None:
+        """Resize event handler.
+
+        Parameters
+        ----------
+        event
+            The resize event.
+
+        """
+        self.update_text()
+        super().resizeEvent(event)
+
+    def eventFilter(self, obj, event) -> bool:
+        """Event filter to handle mouse button release events.
+
+        Parameters
+        ----------
+        obj
+            The object emitting the event.
+        event
+            The event being emitted.
+
+        Returns
+        -------
+        bool
+            True if the event was handled, False otherwise.
+
+        """
+        if obj == self.view().viewport() and event.type() == QtCore.QEvent.Type.MouseButtonRelease:
+            index = self.view().indexAt(event.position().toPoint())
+            item = self.model().itemFromIndex(index)
+            if item.checkState() == QtCore.Qt.CheckState.Checked:
+                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
+            else:
+                item.setCheckState(QtCore.Qt.CheckState.Checked)
+            return True
+        return False
+
+    def update_text(self) -> None:
+        """Update the displayed text based on selected items."""
+        items = self.selected_items()
+
+        if items:
+            text = ", ".join([str(i) for i in items])
+        else:
+            text = ""
+
+        metrics = QtGui.QFontMetrics(self.lineEdit().font())
+        elided_text = metrics.elidedText(text, QtCore.Qt.TextElideMode.ElideRight, self.lineEdit().width())
+        self.lineEdit().setText(elided_text)
+
+    def addItem(self, text: str, data: str = None) -> None:
+        """Add an item to the combo box.
+
+        Parameters
+        ----------
+        text : str
+            The text to display.
+        data : str
+            The associated data. Default is None.
+
+        """
+        item = QtGui.QStandardItem()
+        item.setText(text)
+        item.setData(data or text)
+        item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
+        item.setData(QtCore.Qt.CheckState.Unchecked, QtCore.Qt.ItemDataRole.CheckStateRole)
+        self.model().appendRow(item)
+
+    def addItems(self, texts: list, data_list: list = None) -> None:
+        """Add multiple items to the combo box.
+
+        Parameters
+        ----------
+        texts : list
+            A list of items to add.
+        data_list : list
+            A list of associated data. Default is None.
+
+        """
+        data_list = data_list or [None] * len(texts)
+        for text, data in zip(texts, data_list):
+            self.addItem(text, data)
+
+    def selected_items(self) -> list:
+        """Get the currently selected data.
+
+        Returns
+        -------
+        list
+            A list of currently selected data.
+
+        """
+        return [
+            self.model().item(i).data()
+            for i in range(self.model().rowCount())
+            if self.model().item(i).checkState() == QtCore.Qt.CheckState.Checked
+        ]
+
+    def select_indices(self, indices: list) -> None:
+        """Set the selected items based on the provided indices.
+
+        Parameters
+        ----------
+        indexes : list
+            A list of indexes to select.
+
+        """
+        for i in range(self.model().rowCount()):
+            self.model().item(i).setCheckState(
+                QtCore.Qt.CheckState.Checked if i in indices else QtCore.Qt.CheckState.Unchecked
+            )
+        self.update_text()
+
+    def showEvent(self, event) -> None:
+        """Show event handler.
+
+        Parameters
+        ----------
+        event
+            The show event.
+
+        """
+        super().showEvent(event)
+        self.update_text()

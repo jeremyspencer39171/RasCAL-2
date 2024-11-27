@@ -6,7 +6,7 @@ import pytest
 from pydantic.fields import FieldInfo
 from PyQt6 import QtWidgets
 
-from rascal2.widgets import AdaptiveDoubleSpinBox, get_validated_input
+from rascal2.widgets import AdaptiveDoubleSpinBox, MultiSelectComboBox, get_validated_input
 
 
 class MyEnum(StrEnum):
@@ -39,3 +39,18 @@ def test_adaptive_spinbox(value, decimals):
     spinbox = AdaptiveDoubleSpinBox()
     spinbox.validate(value, 0)
     assert spinbox.decimals() == decimals
+
+
+@pytest.mark.parametrize("selected", ([], [1], [0, 2]))
+def test_multi_select_update(selected):
+    """Test that the selected data updates correctly."""
+    combobox = MultiSelectComboBox()
+    assert combobox.lineEdit().text() == ""
+    assert combobox.selected_items() == []
+    items = ["A", "B", "C"]
+    combobox.addItems(items)
+
+    combobox.select_indices(selected)
+    expected_items = [items[i] for i in selected]
+    assert combobox.selected_items() == expected_items
+    assert combobox.lineEdit().text() == ", ".join(expected_items)
