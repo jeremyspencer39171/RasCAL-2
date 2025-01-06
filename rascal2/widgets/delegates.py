@@ -34,6 +34,41 @@ class ValidatedInputDelegate(QtWidgets.QStyledItemDelegate):
         model.setData(index, data, QtCore.Qt.ItemDataRole.EditRole)
 
 
+class CustomFileFunctionDelegate(QtWidgets.QStyledItemDelegate):
+    """Item delegate for choosing the function from a custom file."""
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.widget = parent
+
+    def createEditor(self, parent, option, index):
+        func_names = self.widget.model.func_names[
+            index.siblingAtColumn(index.column() - 1).data(QtCore.Qt.ItemDataRole.DisplayRole)
+        ]
+        # we define the methods set_data and get_date
+        # so that setEditorData and setModelData don't need
+        # to know what kind of widget the editor is
+        if func_names is None:
+            editor = QtWidgets.QLineEdit(parent)
+            editor.set_data = editor.setText
+            editor.get_data = editor.text
+        else:
+            editor = QtWidgets.QComboBox(parent)
+            editor.addItems(func_names)
+            editor.set_data = editor.setCurrentText
+            editor.get_data = editor.currentText
+
+        return editor
+
+    def setEditorData(self, editor: QtWidgets.QWidget, index):
+        data = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
+        editor.set_data(data)
+
+    def setModelData(self, editor, model, index):
+        data = editor.get_data()
+        model.setData(index, data, QtCore.Qt.ItemDataRole.EditRole)
+
+
 class ValueSpinBoxDelegate(QtWidgets.QStyledItemDelegate):
     """Item delegate for parameter values between a dynamic min and max.
 

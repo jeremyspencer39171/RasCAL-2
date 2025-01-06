@@ -1,14 +1,19 @@
+import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pydantic
 import pytest
 import RATapi
 from PyQt6 import QtCore, QtWidgets
+from RATapi.utils.enums import Languages
 
 import rascal2.widgets.delegates as delegates
 import rascal2.widgets.inputs as inputs
 from rascal2.widgets.project.models import (
     ClassListModel,
+    CustomFileModel,
+    CustomFileWidget,
     DomainContrastWidget,
     DomainsModel,
     LayerFieldWidget,
@@ -390,3 +395,98 @@ def test_domains_widget_item_delegates(domains_classlist):
     widget.update_model(domains_classlist)
     assert isinstance(widget.table.itemDelegateForColumn(1), delegates.ValidatedInputDelegate)
     assert isinstance(widget.table.itemDelegateForColumn(2), delegates.MultiSelectLayerDelegate)
+
+
+def test_file_model_filename_data():
+    """Tests the display data for the CustomFileModel `filename` field is as expected."""
+    init_list = RATapi.ClassList(
+        [
+            RATapi.models.CustomFile(filename="myfile.m", path="/home/user/"),
+            RATapi.models.CustomFile(filename="", path="/"),
+        ]
+    )
+
+    model = CustomFileModel(init_list, parent)
+
+    filename_col = model.headers.index("filename") + 1
+
+    assert model.data(model.index(0, filename_col)) == "myfile.m"
+    assert model.data(model.index(1, filename_col)) == ""
+
+    model.edit_mode = True
+
+    assert Path(model.data(model.index(0, filename_col))) == Path("/home/user/myfile.m")
+    assert model.data(model.index(1, filename_col)) == "Browse..."
+
+
+@pytest.mark.parametrize(
+    "filename, expected_lang, expected_filenames",
+    (
+        ["myfile.m", Languages.Matlab, None],
+        ["myfile.py", Languages.Python, ["func1", "func2", "func3"]],
+        ["myfile.dll", Languages.Cpp, None],
+        ["myfile.so", Languages.Cpp, None],
+        ["myfile.dylib", Languages.Cpp, None],
+    ),
+)
+def test_file_model_set_filename(filename, expected_lang, expected_filenames):
+    """Test the custom file row autocompletes when a filename is set."""
+    init_list = RATapi.ClassList([RATapi.models.CustomFile(filename="", path="/")])
+
+    python_file = "def func1(): pass \ndef func2(): pass \ndef func3(): pass"
+
+    model = CustomFileModel(init_list, parent)
+
+    filename_col = model.headers.index("filename") + 1
+
+    with tempfile.TemporaryDirectory() as tmp:
+        Path(tmp, "myfile.py").write_text(python_file)
+        filepath = Path(tmp, filename)
+        model.setData(model.index(0, filename_col), filepath)
+
+        assert model.classlist[0].path == Path(tmp)
+        assert model.classlist[0].filename == filename
+        assert model.classlist[0].language == expected_lang
+
+        if expected_lang == Languages.Python:
+            assert model.func_names[filepath] == expected_filenames
+            assert model.classlist[0].function_name == "func1"
+
+
+@pytest.mark.parametrize("filename", ["file.m", "file.py", "file.dll", ""])
+def test_file_widget_edit(filename):
+    """Test that the correct index widget is created in edit mode."""
+
+    with tempfile.TemporaryDirectory() as tmp:
+        Path(tmp, "file.py").touch()
+        init_list = RATapi.ClassList([RATapi.models.CustomFile(filename="")])
+
+        widget = CustomFileWidget("files", parent)
+        widget.update_model(init_list)
+
+        edit_col = widget.model.columnCount() - 1
+        assert widget.table.isColumnHidden(edit_col)
+
+        widget.edit()
+
+        assert not widget.table.isColumnHidden(edit_col)
+
+        if filename != "":
+            widget.model.setData(
+                widget.model.index(0, widget.model.headers.index("filename") + 1),
+                Path(tmp, filename),
+            )
+
+        button = widget.table.indexWidget(widget.model.index(0, edit_col))
+        assert isinstance(button, QtWidgets.QPushButton)
+
+        if filename in ["file.m", "file.py"]:
+            assert button.isEnabled()
+        else:
+            assert not button.isEnabled()
+
+        if filename == "file.m":
+            assert button.menu() is not None
+            assert len(button.menu().actions()) == 2
+        else:
+            assert button.menu() is None

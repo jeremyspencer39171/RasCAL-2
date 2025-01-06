@@ -1,19 +1,18 @@
 """Models and widgets for project fields."""
 
+import contextlib
+import re
 from enum import Enum
+from pathlib import Path
 
 import pydantic
 import RATapi
 from PyQt6 import QtCore, QtGui, QtWidgets
-from RATapi.utils.enums import Procedures
+from RATapi.utils.enums import Languages, Procedures
 
+import rascal2.widgets.delegates as delegates
 from rascal2.config import path_for
-from rascal2.widgets.delegates import (
-    MultiSelectLayerDelegate,
-    ParametersDelegate,
-    ValidatedInputDelegate,
-    ValueSpinBoxDelegate,
-)
+from rascal2.dialogs.custom_file_editor import edit_file, edit_file_matlab
 
 
 class ClassListModel(QtCore.QAbstractTableModel):
@@ -87,6 +86,7 @@ class ClassListModel(QtCore.QAbstractTableModel):
                     return False
                 if not self.edit_mode:
                     self.parent.update_project()
+                self.dataChanged.emit(index, index)
                 return True
         return False
 
@@ -194,7 +194,7 @@ class ProjectFieldWidget(QtWidgets.QWidget):
         """Set item delegates and open persistent editors for the table."""
         for i, header in enumerate(self.model.headers):
             self.table.setItemDelegateForColumn(
-                i + 1, ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table)
+                i + 1, delegates.ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table)
             )
 
     def append_item(self):
@@ -282,10 +282,10 @@ class ParameterFieldWidget(ProjectFieldWidget):
     def set_item_delegates(self):
         for i, header in enumerate(self.model.headers):
             if header in ["min", "value", "max"]:
-                self.table.setItemDelegateForColumn(i + 1, ValueSpinBoxDelegate(header, self.table))
+                self.table.setItemDelegateForColumn(i + 1, delegates.ValueSpinBoxDelegate(header, self.table))
             else:
                 self.table.setItemDelegateForColumn(
-                    i + 1, ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table)
+                    i + 1, delegates.ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table)
                 )
 
     def update_model(self, classlist):
@@ -411,10 +411,10 @@ class LayerFieldWidget(ProjectFieldWidget):
             if i in [1, self.model.columnCount() - 1]:
                 header = self.model.headers[i - 1]
                 self.table.setItemDelegateForColumn(
-                    i, ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table)
+                    i, delegates.ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table)
                 )
             else:
-                self.table.setItemDelegateForColumn(i, ParametersDelegate(self.project_widget, self.table))
+                self.table.setItemDelegateForColumn(i, delegates.ParametersDelegate(self.project_widget, self.table))
 
     def set_absorption(self, absorption: bool):
         """Set whether the classlist uses AbsorptionLayers.
@@ -458,6 +458,161 @@ class DomainContrastWidget(ProjectFieldWidget):
 
     def set_item_delegates(self):
         self.table.setItemDelegateForColumn(
-            1, ValidatedInputDelegate(self.model.item_type.model_fields["name"], self.table)
+            1, delegates.ValidatedInputDelegate(self.model.item_type.model_fields["name"], self.table)
         )
-        self.table.setItemDelegateForColumn(2, MultiSelectLayerDelegate(self.project_widget, self.table))
+        self.table.setItemDelegateForColumn(2, delegates.MultiSelectLayerDelegate(self.project_widget, self.table))
+
+
+class CustomFileModel(ClassListModel):
+    """Classlist model for custom files."""
+
+    def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
+        super().__init__(classlist, parent)
+        self.func_names = {}
+        self.headers.remove("path")
+
+    def columnCount(self, parent=None) -> int:
+        return super().columnCount() + 1
+
+    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if section == self.columnCount() - 1:
+            return None
+        return super().headerData(section, orientation, role)
+
+    def flags(self, index):
+        flags = super().flags(index)
+        if index.column() in [0, self.columnCount() - 1]:
+            return QtCore.Qt.ItemFlag.NoItemFlags
+        if self.edit_mode:
+            flags |= QtCore.Qt.ItemFlag.ItemIsEditable
+        return flags
+
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        data = super().data(index, role)
+        if role == QtCore.Qt.ItemDataRole.DisplayRole and self.index_header(index) == "filename" and self.edit_mode:
+            if data == "":
+                return "Browse..."
+            return str(self.classlist[index.row()].path / data)
+
+        return data
+
+    def setData(self, index, value, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if self.index_header(index) == "filename":
+            file_path = Path(value)
+            row = index.row()
+            self.classlist[row].path = file_path.parent
+            self.classlist[row].filename = str(file_path.name)
+
+            # auto-set language from file extension if possible
+            # & get file names for dropdown on Python
+            extension = file_path.suffix
+            match extension:
+                case ".py":
+                    language = Languages.Python
+                    # the regex:
+                    # (?:^|\n) means 'match start of the string (i.e. the file) or a newline'
+                    # (\S+) means 'capture one or more non-whitespace characters'
+                    # so the regex captures a word between 'def ' and '(', i.e. a function name
+                    func_names = re.findall(r"(?:^|\n)def (\S+)\(", file_path.read_text())
+                case ".m":
+                    language = Languages.Matlab
+                    func_names = None
+                case ".dll" | ".so" | ".dylib":
+                    language = Languages.Cpp
+                    func_names = None
+                case _:
+                    language = None
+                    func_names = None
+            self.func_names[value] = func_names
+            if func_names:
+                self.classlist[row].function_name = func_names[0]
+            if language is not None:
+                self.classlist[row].language = language
+
+            self.dataChanged.emit(index, index)
+            return True
+
+        return super().setData(index, value, role)
+
+    def append_item(self):
+        """Append an item to the ClassList."""
+        self.classlist.append(self.item_type(filename="", path="/"))
+        self.endResetModel()
+
+    def index_header(self, index):
+        if index.column() == self.columnCount() - 1:
+            return None
+        return super().index_header(index)
+
+
+class CustomFileWidget(ProjectFieldWidget):
+    classlist_model = CustomFileModel
+
+    def update_model(self, classlist):
+        super().update_model(classlist)
+        self.table.hideColumn(self.model.columnCount() - 1)
+
+    def edit(self):
+        super().edit()
+        edit_file_column = self.model.columnCount() - 1
+        self.table.showColumn(edit_file_column)
+        # disconnect from old table's buttons so they don't create dangling references
+        # if no connections currently exist (i.e. table empty), disconnect() raises a TypeError
+        with contextlib.suppress(TypeError):
+            self.model.dataChanged.disconnect()
+        for i in range(0, self.model.rowCount()):
+            self.table.setIndexWidget(self.model.index(i, edit_file_column), self.make_edit_button(i))
+
+    def make_edit_button(self, index):
+        button = QtWidgets.QPushButton("Edit File", self.table)
+        q_scintilla_action = QtGui.QAction("Edit in RasCAL-2...", self.table)
+        q_scintilla_action.triggered.connect(
+            lambda: edit_file(
+                self.model.classlist[index].path / self.model.classlist[index].filename,
+                self.model.classlist[index].language,
+                self,
+            )
+        )
+        matlab_action = QtGui.QAction("Edit in MATLAB...", self.table)
+        matlab_action.triggered.connect(
+            lambda: edit_file_matlab(self.model.classlist[index].path / self.model.classlist[index].filename)
+        )
+        menu = QtWidgets.QMenu(self.table)
+        menu.addActions([q_scintilla_action, matlab_action])
+
+        def setup_button():
+            """Check whether the button should be editable and set it up for the right language."""
+            language = self.model.data(self.model.index(index, self.model.headers.index("language") + 1))
+            with contextlib.suppress(TypeError):
+                button.pressed.disconnect()
+            if language == Languages.Matlab:
+                button.setMenu(menu)
+                button.pressed.connect(button.showMenu)
+            else:
+                button.setMenu(None)
+                button.pressed.connect(
+                    lambda: edit_file(
+                        self.model.classlist[index].path / self.model.classlist[index].filename,
+                        self.model.classlist[index].language,
+                        self,
+                    )
+                )
+
+            editable = (language in [Languages.Matlab, Languages.Python]) and (
+                self.model.data(self.model.index(index, self.model.headers.index("filename") + 1)) != "Browse..."
+            )
+            button.setEnabled(editable)
+
+        setup_button()
+        self.model.dataChanged.connect(lambda: setup_button())
+
+        return button
+
+    def set_item_delegates(self):
+        super().set_item_delegates()
+        filename_index = self.model.headers.index("filename") + 1
+        function_index = self.model.headers.index("function_name") + 1
+        self.table.setItemDelegateForColumn(
+            filename_index, delegates.ValidatedInputDelegate(self.model.item_type.model_fields["path"], self.table)
+        )
+        self.table.setItemDelegateForColumn(function_index, delegates.CustomFileFunctionDelegate(self))

@@ -8,6 +8,7 @@ from RATapi.utils.enums import Calculations, Geometries, LayerModels
 
 from rascal2.config import path_for
 from rascal2.widgets.project.models import (
+    CustomFileWidget,
     DomainContrastWidget,
     LayerFieldWidget,
     ParameterFieldWidget,
@@ -43,6 +44,7 @@ class ProjectWidget(QtWidgets.QWidget):
             "Data": [],
             "Backgrounds": [],
             "Domains": ["domain_ratios", "domain_contrasts"],
+            "Custom Files": ["custom_files"],
             "Contrasts": [],
         }
 
@@ -371,6 +373,8 @@ class ProjectTabWidget(QtWidgets.QWidget):
                 self.tables[field] = LayerFieldWidget(field, self)
             elif field == "domain_contrasts":
                 self.tables[field] = DomainContrastWidget(field, self)
+            elif field == "custom_files":
+                self.tables[field] = CustomFileWidget(field, self)
             else:
                 self.tables[field] = ProjectFieldWidget(field, self)
             layout.addWidget(self.tables[field])

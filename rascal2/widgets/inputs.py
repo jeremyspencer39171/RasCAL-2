@@ -2,6 +2,7 @@
 
 from enum import Enum
 from math import floor, log10
+from pathlib import Path
 from typing import Callable
 
 from pydantic.fields import FieldInfo
@@ -29,6 +30,7 @@ def get_validated_input(field_info: FieldInfo, parent=None) -> QtWidgets.QWidget
         int: IntInputWidget,
         float: FloatInputWidget,
         Enum: EnumInputWidget,
+        Path: PathInputWidget,
     }
 
     for input_type, widget in class_widgets.items():
@@ -158,6 +160,25 @@ class EnumInputWidget(BaseInputWidget):
             editor.addItem(str(e), e)
 
         return editor
+
+
+class PathInputWidget(BaseInputWidget):
+    """Input widget for paths."""
+
+    edit_signal = "pressed"
+
+    def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
+        file_dialog = QtWidgets.QFileDialog(parent=self)
+
+        def open_file():
+            file = file_dialog.getOpenFileName()[0]
+            if file:
+                browse_button.setText(file)
+
+        browse_button = QtWidgets.QPushButton("Browse...", self)
+        browse_button.clicked.connect(lambda: open_file())
+
+        return browse_button
 
 
 class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
