@@ -291,12 +291,12 @@ def test_project_tab_validate_layers(input_params, absorption):
 
         if missing_params:
             noun = "a parameter" if len(missing_params) == 1 else "parameters"
-            msg = f"Layer '{layer.name}' (row {i+1}) is missing {noun}: {', '.join(missing_params)}"
+            msg = f"Layer '{layer.name}' (row {i + 1}) is missing {noun}: {', '.join(missing_params)}"
             expected_err.append(msg)
         if invalid_params:
             noun = "an invalid value" if len(invalid_params) == 1 else "invalid values"
             msg = (
-                f"Layer '{layer.name}' (row {i+1}) has {noun}: "
+                f"Layer '{layer.name}' (row {i + 1}) has {noun}: "
                 f"{', '.join(f'"Invalid Param" for parameter {p}' for p in invalid_params)}"
             )
             expected_err.append(msg)

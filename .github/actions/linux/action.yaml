@@ -9,7 +9,7 @@ runs:
     shell: bash -l {0}
     run: |
       sudo apt update
-      sudo apt install xvfb libqt5x11extras5 libgl1-mesa-glx '^libxcb.*-dev'
+      sudo apt install xvfb libqt5x11extras5 libgl1 libglx-mesa0 '^libxcb.*-dev'
   - name: Install RasCAL2
     shell: bash -l {0}
     run: pip install .

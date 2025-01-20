@@ -326,11 +326,11 @@ class ProjectWidget(QtWidgets.QWidget):
 
                 if missing_params:
                     noun = "a parameter" if len(missing_params) == 1 else "parameters"
-                    msg = f"Layer '{layer.name}' (row {i+1}) is missing {noun}: {', '.join(missing_params)}"
+                    msg = f"Layer '{layer.name}' (row {i + 1}) is missing {noun}: {', '.join(missing_params)}"
                     errors.append(msg)
                 if invalid_params:
                     noun = "an invalid value" if len(invalid_params) == 1 else "invalid values"
-                    msg = f"Layer '{layer.name}' (row {i+1}) has {noun}: " "{0}".format(
+                    msg = f"Layer '{layer.name}' (row {i + 1}) has {noun}: {{0}}".format(
                         ",\n  ".join(f'"{v}" for parameter {p}' for p, v in invalid_params)
                     )
                     errors.append(msg)
