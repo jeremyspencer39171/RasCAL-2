@@ -99,7 +99,7 @@ def test_empty_queue(mock_process):
 def test_run(display):
     """Test that a run puts the correct items in the queue."""
     queue = Queue()
-    run(queue, [0, 1, 2, 3, 4], "", display)
+    run(queue, [0, 1, 2, 3], "", display)
     expected_display = [
         LogData(20, "Starting RAT"),
         0.2,
@@ -132,7 +132,7 @@ def test_run_error():
 
     queue = Queue()
     with patch("RATapi.rat_core.RATMain", new=erroring_ratmain):
-        run(queue, [0, 1, 2, 3, 4], "", True)
+        run(queue, [0, 1, 2, 3], "", True)
 
     queue.put(None)
     queue_contents = list(iter(queue.get, None))

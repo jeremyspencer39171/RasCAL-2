@@ -249,6 +249,7 @@ class ParametersModel(ClassListModel):
     def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
         super().__init__(classlist, parent)
         self.headers.insert(0, self.headers.pop(self.headers.index("fit")))
+        self.headers.pop(self.headers.index("show_priors"))
 
         self.protected_indices = []
         if self.item_type is RATapi.models.Parameter:

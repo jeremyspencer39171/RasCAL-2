@@ -34,23 +34,6 @@ class TerminalWidget(QtWidgets.QWidget):
         widget_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(widget_layout)
 
-        self.write(
-            """
- ███████████                       █████████    █████████   █████
-░░███░░░░░███                     ███░░░░░███  ███░░░░░███ ░░███
- ░███    ░███   ██████    █████  ███     ░░░  ░███    ░███  ░███
- ░██████████   ░░░░░███  ███░░  ░███          ░███████████  ░███
- ░███░░░░░███   ███████ ░░█████ ░███          ░███░░░░░███  ░███
- ░███    ░███  ███░░███  ░░░░███░░███     ███ ░███    ░███  ░███      █
- █████   █████░░████████ ██████  ░░█████████  █████   █████ ███████████
-░░░░░   ░░░░░  ░░░░░░░░ ░░░░░░    ░░░░░░░░░  ░░░░░   ░░░░░ ░░░░░░░░░░░
-"""
-        )
-        self.write_html(f"\n<b>RasCAL-2:</b> software for neutron reflectivity calculations <b>v{RASCAL2_VERSION}</b>")
-
-        # set text area to be scrolled to the left at start
-        self.text_area.moveCursor(QtGui.QTextCursor.MoveOperation.StartOfLine, QtGui.QTextCursor.MoveMode.MoveAnchor)
-
     def write(self, text: str):
         """Append plain text to the terminal.
 
@@ -88,6 +71,25 @@ class TerminalWidget(QtWidgets.QWidget):
         """Clear the text in the terminal."""
         self.text_area.setPlainText("")
         self.update()
+
+    def write_startup(self):
+        """Write the RasCAL-2 startup information to the terminal."""
+        self.write(
+            """
+ ███████████                       █████████    █████████   █████
+░░███░░░░░███                     ███░░░░░███  ███░░░░░███ ░░███
+ ░███    ░███   ██████    █████  ███     ░░░  ░███    ░███  ░███
+ ░██████████   ░░░░░███  ███░░  ░███          ░███████████  ░███
+ ░███░░░░░███   ███████ ░░█████ ░███          ░███░░░░░███  ░███
+ ░███    ░███  ███░░███  ░░░░███░░███     ███ ░███    ░███  ░███      █
+ █████   █████░░████████ ██████  ░░█████████  █████   █████ ███████████
+░░░░░   ░░░░░  ░░░░░░░░ ░░░░░░    ░░░░░░░░░  ░░░░░   ░░░░░ ░░░░░░░░░░░
+"""
+        )
+        self.write_html(f"\n<b>RasCAL-2:</b> software for neutron reflectivity calculations <b>v{RASCAL2_VERSION}</b>")
+
+        # set text area to be scrolled to the left at start
+        self.text_area.moveCursor(QtGui.QTextCursor.MoveOperation.StartOfLine, QtGui.QTextCursor.MoveMode.MoveAnchor)
 
     def update_progress(self, event):
         """Update the progress bar from event data.

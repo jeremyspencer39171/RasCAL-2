@@ -14,7 +14,11 @@ examples = [
 
 for example in examples:
     p, _ = getattr(RAT.examples, example)()
+    # TODO remove this when RascalSoftware/python-RAT/#126 is fixed
+    # https://github.com/RascalSoftware/python-RAT/issues/126
+    for custom_file in p.custom_files:
+        custom_file.path = Path(".")
     example_folder = Path(f"./{example}/")
     example_folder.mkdir(parents=True, exist_ok=True)
-    Path(example_folder, "project.json").write_text(RAT.utils.convert.project_to_json(p))
-    Path(example_folder, "controls.json").write_text("{}")
+    p.save(example_folder, "project")
+    RAT.Controls().save(example_folder, "controls") 

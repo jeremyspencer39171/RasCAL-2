@@ -1,1 +1,1 @@
-{"procedure":"calculate","parallel":"contrasts","calcSldDuringFit":false,"resampleMinAngle":0.9,"resampleNPoints":150,"display":"iter"}
+{"procedure":"calculate","parallel":"single","calcSldDuringFit":false,"resampleMinAngle":0.9,"resampleNPoints":50,"display":"iter"}

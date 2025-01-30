@@ -44,6 +44,7 @@ def presenter():
     pr.runner = MagicMock()
     pr.model.controls = Controls()
     pr.model.project = MagicMock()
+    pr.model.results = MagicMock()
     pr.model.save_path = "some_path/"
 
     return pr
@@ -82,8 +83,9 @@ def test_run_and_interrupt(mock_runner, mock_inputs, presenter):
     presenter.runner.interrupt.assert_called_once()
 
 
+@patch("rascal2.core.commands.SaveCalculationOutputs")
 @patch("RATapi.inputs.make_problem")
-def test_handle_results(mock_problem_def, presenter):
+def test_handle_results(mock_problem_def, mock_command, presenter):
     """Test that results are handed to the view correctly."""
     presenter.runner = MagicMock()
     presenter.runner.updated_problem = ProblemDefinition()
@@ -92,6 +94,7 @@ def test_handle_results(mock_problem_def, presenter):
     presenter.handle_results()
 
     presenter.view.handle_results.assert_called_once_with(presenter.runner.results)
+    mock_command.assert_called_once()
 
 
 def test_stop_run(presenter):

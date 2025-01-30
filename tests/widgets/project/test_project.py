@@ -36,6 +36,7 @@ class MockMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.presenter = MockPresenter()
+        self.controls_widget = MagicMock()
 
 
 class DataModel(pydantic.BaseModel, validate_assignment=True):
@@ -103,7 +104,7 @@ def test_project_widget_initial_state(setup_project_widget):
     assert project_widget.edit_project_button.text() == "Edit Project"
 
     assert project_widget.calculation_label.text() == "Calculation:"
-    assert project_widget.calculation_type.text() == Calculations.NonPolarised
+    assert project_widget.calculation_type.text() == Calculations.Normal
     assert project_widget.calculation_type.isReadOnly()
 
     assert project_widget.model_type_label.text() == "Model Type:"
@@ -122,7 +123,7 @@ def test_project_widget_initial_state(setup_project_widget):
     assert project_widget.cancel_button.text() == "Cancel"
 
     assert project_widget.edit_calculation_label.text() == "Calculation:"
-    assert project_widget.calculation_combobox.currentText() == Calculations.NonPolarised
+    assert project_widget.calculation_combobox.currentText() == Calculations.Normal
     for ix, calc in enumerate(Calculations):
         assert project_widget.calculation_combobox.itemText(ix) == calc
 
@@ -146,7 +147,7 @@ def test_project_widget_initial_state(setup_project_widget):
 
 def test_edit_cancel_button_toggle(setup_project_widget):
     """
-    Tests clicking the edit button cuases the stacked widget to change state.
+    Tests clicking the edit button causes the stacked widget to change state.
     """
     project_widget = setup_project_widget
 
@@ -156,14 +157,14 @@ def test_edit_cancel_button_toggle(setup_project_widget):
 
     assert project_widget.geometry_combobox.currentText() == Geometries.AirSubstrate
     assert project_widget.model_combobox.currentText() == LayerModels.StandardLayers
-    assert project_widget.calculation_combobox.currentText() == Calculations.NonPolarised
+    assert project_widget.calculation_combobox.currentText() == Calculations.Normal
 
     project_widget.cancel_button.click()
     assert project_widget.stacked_widget.currentIndex() == 0
 
     assert project_widget.geometry_type.text() == Geometries.AirSubstrate
     assert project_widget.model_type.text() == LayerModels.StandardLayers
-    assert project_widget.calculation_type.text() == Calculations.NonPolarised
+    assert project_widget.calculation_type.text() == Calculations.Normal
 
 
 def test_save_changes_to_model_project(setup_project_widget):
@@ -206,8 +207,8 @@ def test_cancel_changes_to_model_project(setup_project_widget):
     project_widget.cancel_button.click()
     assert project_widget.parent.presenter.edit_project.call_count == 0
 
-    assert project_widget.calculation_combobox.currentText() == Calculations.NonPolarised
-    assert project_widget.calculation_type.text() == Calculations.NonPolarised
+    assert project_widget.calculation_combobox.currentText() == Calculations.Normal
+    assert project_widget.calculation_type.text() == Calculations.Normal
     assert project_widget.model_combobox.currentText() == LayerModels.StandardLayers
     assert project_widget.model_type.text() == LayerModels.StandardLayers
     assert project_widget.geometry_combobox.currentText() == Geometries.AirSubstrate

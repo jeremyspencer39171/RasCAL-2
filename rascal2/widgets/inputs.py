@@ -99,6 +99,10 @@ class IntInputWidget(BaseInputWidget):
 
     def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
         editor = QtWidgets.QSpinBox(self)
+        # default max and min are 99 and 0
+        # there is no 'integer infinity' so we just set them to biggest possible numbers
+        editor.setMaximum(2**31 - 1)
+        editor.setMinimum(-(2**31))
         for item in field_info.metadata:
             if hasattr(item, "ge"):
                 editor.setMinimum(item.ge)

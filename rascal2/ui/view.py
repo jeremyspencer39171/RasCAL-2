@@ -268,7 +268,10 @@ class MainWindowView(QtWidgets.QMainWindow):
     def setup_mdi_widgets(self):
         """Performs setup of MDI widgets that relies on the Project existing."""
         self.controls_widget.setup_controls()
-        self.project_widget.update_project_view()
+        self.project_widget.cancel_changes()
+        self.plot_widget.clear()
+        self.terminal_widget.clear()
+        self.terminal_widget.write_startup()
 
     def reset_mdi_layout(self):
         """Reset MDI layout to the default."""
@@ -331,6 +334,14 @@ class MainWindowView(QtWidgets.QMainWindow):
     def reset_widgets(self):
         """Reset widgets after a run."""
         self.controls_widget.run_button.setChecked(False)
+
+    def set_editing_enabled(self, enabled: bool):
+        """Disable or enable project editing, for example during a run."""
+        self.controls_widget.fit_settings.setEnabled(enabled)
+        self.controls_widget.procedure_dropdown.setEnabled(enabled)
+        self.undo_action.setEnabled(enabled)
+        self.redo_action.setEnabled(enabled)
+        self.project_widget.set_editing_enabled(enabled)
 
     def get_project_folder(self) -> str:
         """Get a specified folder from the user.

@@ -11,10 +11,17 @@ from rascal2.core.settings import MDIGeometries, Settings
 from rascal2.ui.view import MainWindowView
 
 
+class MockFigureCanvas(QtWidgets.QWidget):
+    """A mock figure canvas."""
+
+    def draw(*args, **kwargs):
+        pass
+
+
 @pytest.fixture
 def test_view():
     """An instance of MainWindowView."""
-    with patch("rascal2.widgets.plot.FigureCanvas", return_value=QtWidgets.QWidget()):
+    with patch("rascal2.widgets.plot.FigureCanvas", return_value=MockFigureCanvas()):
         yield MainWindowView()
 
 

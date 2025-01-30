@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 import pytest
 from RATapi import Controls, Project
-from RATapi.utils.convert import project_to_json
 from RATapi.utils.enums import Calculations
 
 from rascal2.ui.model import MainWindowModel
@@ -49,8 +48,8 @@ def test_load_project():
     project = Project(name="test project", calculation="domains")
 
     with TemporaryDirectory() as tmpdir:
-        Path(tmpdir, "controls.json").write_text('{"procedure":"dream","resampleMinAngle":0.5}')
-        Path(tmpdir, "project.json").write_text(project_to_json(project))
+        Controls(procedure="dream", resampleMinAngle=0.5).save(tmpdir, "controls")
+        project.save(tmpdir, "project")
         model.load_project(tmpdir)
 
     assert model.controls == Controls(procedure="dream", resampleMinAngle=0.5)

@@ -75,11 +75,8 @@ class MainWindowModel(QtCore.QObject):
     def save_project(self):
         """Save the project to the save path."""
 
-        controls_file = Path(self.save_path, "controls.json")
-        controls_file.write_text(self.controls.model_dump_json())
-
-        project_file = Path(self.save_path, "project.json")
-        project_file.write_text(RAT.utils.convert.project_to_json(self.project))
+        self.controls.save(self.save_path, "controls")
+        self.project.save(self.save_path, "project")
 
     def load_project(self, load_path: str):
         """Load a project from a project folder.
@@ -97,7 +94,7 @@ class MainWindowModel(QtCore.QObject):
         """
         controls_file = Path(load_path, "controls.json")
         try:
-            controls = RAT.Controls.model_validate_json(controls_file.read_text().rstrip())
+            controls = RAT.Controls.load(controls_file)
         except ValueError as err:
             raise ValueError(
                 "The controls.json file for this project is not valid.\n"
@@ -106,7 +103,11 @@ class MainWindowModel(QtCore.QObject):
 
         project_file = Path(load_path, "project.json")
         try:
-            project = RAT.utils.convert.project_from_json(project_file.read_text().rstrip())
+            project = RAT.Project.load(project_file)
+            # TODO remove this when RascalSoftware/python-RAT/#126 is fixed
+            # https://github.com/RascalSoftware/python-RAT/issues/126
+            for file in project.custom_files:
+                file.path = Path(load_path, file.path)
         except JSONDecodeError as err:
             raise ValueError("The project.json file for this project contains invalid JSON.") from err
         except (KeyError, ValueError) as err:

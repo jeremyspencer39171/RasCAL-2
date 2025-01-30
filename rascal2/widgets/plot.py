@@ -97,9 +97,7 @@ class PlotWidget(QtWidgets.QWidget):
             The calculation results.
         """
         if project is None or results is None:
-            for axis in self.figure.axes:
-                axis.clear()
-            self.canvas.draw()
+            self.clear()
             return
 
         data = RATapi.events.PlotEventData()
@@ -142,4 +140,10 @@ class PlotWidget(QtWidgets.QWidget):
             show_legend=show_legend,
         )
         self.figure.tight_layout(pad=1)
+        self.canvas.draw()
+
+    def clear(self):
+        """Clear the canvas."""
+        for axis in self.figure.axes:
+            axis.clear()
         self.canvas.draw()

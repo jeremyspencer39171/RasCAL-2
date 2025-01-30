@@ -16,6 +16,7 @@ class ControlsWidget(QtWidgets.QWidget):
 
     def __init__(self, parent):
         super().__init__()
+        self.view = parent
         self.presenter = parent.presenter
         self.presenter.model.controls_updated.connect(self.update_ui)
 
@@ -89,6 +90,8 @@ class ControlsWidget(QtWidgets.QWidget):
 
     def setup_controls(self):
         """Setup the parts of the widget which depend on the Controls object."""
+        # clear any chi-squared from previous controls
+        self.chi_squared.setText("")
 
         # add fit settings for each procedure
         for procedure in Procedures:
@@ -156,14 +159,12 @@ class ControlsWidget(QtWidgets.QWidget):
                 self.run_button.setChecked(False)
                 return
             self.validation_label.setText("")
-            self.fit_settings.setEnabled(False)
-            self.procedure_dropdown.setEnabled(False)
+            self.view.set_editing_enabled(False)
             self.run_button.setEnabled(False)
             self.stop_button.setEnabled(True)
             self.presenter.run()
         else:
-            self.fit_settings.setEnabled(True)
-            self.procedure_dropdown.setEnabled(True)
+            self.view.set_editing_enabled(True)
             self.run_button.setEnabled(True)
             self.stop_button.setEnabled(False)
 
@@ -216,8 +217,12 @@ class FitSettingsWidget(QtWidgets.QWidget):
             self.rows[setting].layout().setContentsMargins(5, 0, 0, 0)
             self.datasetter[setting] = self.create_model_data_setter(setting)
             self.rows[setting].edited_signal.connect(self.datasetter[setting])
+
+            # the label gives a description of the controls field on mouseover
             label = QtWidgets.QLabel(setting)
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
+            label.setToolTip(field_info.description)
+
             self.val_labels[setting] = QtWidgets.QLabel()
             self.val_labels[setting].setStyleSheet("QLabel { color : red; }")
             self.val_labels[setting].font().setPointSize(10)

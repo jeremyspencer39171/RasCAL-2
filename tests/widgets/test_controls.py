@@ -18,6 +18,8 @@ class MockWindowView(QtWidgets.QMainWindow):
         self.presenter = MagicMock()
         self.presenter.model = MagicMock()
         self.presenter.model.controls = Controls()
+        self.project_widget = MagicMock()
+        self.set_editing_enabled = MagicMock()
 
 
 view = MockWindowView()
@@ -67,18 +69,14 @@ def test_toggle_fit(controls_widget):
 
 
 def test_toggle_run_disables(controls_widget):
-    """Assert that Controls settings are disabled and Stop button enabled when the run button is pressed."""
+    """Assert that settings are disabled and Stop button enabled when the run button is pressed."""
     wg = controls_widget()
-    assert wg.fit_settings.isEnabled()
-    assert wg.procedure_dropdown.isEnabled()
     assert not wg.stop_button.isEnabled()
     wg.run_button.toggle()
-    assert not wg.fit_settings.isEnabled()
-    assert not wg.procedure_dropdown.isEnabled()
+    wg.view.set_editing_enabled.assert_called_with(False)
     assert wg.stop_button.isEnabled()
     wg.run_button.toggle()
-    assert wg.fit_settings.isEnabled()
-    assert wg.procedure_dropdown.isEnabled()
+    wg.view.set_editing_enabled.assert_called_with(True)
     assert not wg.stop_button.isEnabled()
 
 

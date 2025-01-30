@@ -127,7 +127,9 @@ class SaveCalculationOutputs(QtGui.QUndoCommand):
         self.results = results
         self.log = log
         self.problem = self.get_parameter_values(problem)
-        self.old_problem = self.get_parameter_values(RATapi.inputs.make_problem(self.presenter.model.project))
+        checks = RATapi.rat_core.Checks()
+        checks.qzshifts = []
+        self.old_problem = self.get_parameter_values(RATapi.inputs.make_problem(self.presenter.model.project, checks))
         self.old_results = copy.deepcopy(self.presenter.model.results)
         self.old_log = self.presenter.model.result_log
         self.setText("Save calculation results")
@@ -147,10 +149,10 @@ class SaveCalculationOutputs(QtGui.QUndoCommand):
         """
         parameter_field = {
             "parameters": "params",
-            "bulk_in": "bulkIn",
-            "bulk_out": "bulkOut",
+            "bulk_in": "bulkIns",
+            "bulk_out": "bulkOuts",
             "scalefactors": "scalefactors",
-            "domain_ratios": "domainRatio",
+            "domain_ratios": "domainRatios",
             "background_parameters": "backgroundParams",
             "resolution_parameters": "resolutionParams",
         }
@@ -203,3 +205,4 @@ class SaveCalculationOutputs(QtGui.QUndoCommand):
         self.presenter.view.controls_widget.chi_squared.setText(chi_text)
         self.presenter.view.terminal_widget.clear()
         self.presenter.view.terminal_widget.write(log)
+        self.presenter.view.project_widget.update_project_view()
