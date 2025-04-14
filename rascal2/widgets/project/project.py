@@ -315,14 +315,14 @@ class ProjectWidget(QtWidgets.QWidget):
             layer_attrs = list(self.draft_project["layers"][0].model_fields)
             layer_attrs.remove("name")
             layer_attrs.remove("hydrate_with")
-            # ensure all layer parameters have been filled in, and all names are layers that exist
-            valid_params = [p.name for p in self.draft_project["parameters"]]
+            # ensure all layer parameters have been filled in, and all names are parameters that exist
+            valid_params = [p.name for p in self.draft_project["parameters"]] + [""]
             for i, layer in enumerate(self.draft_project["layers"]):
                 missing_params = []
                 invalid_params = []
                 for attr in layer_attrs:
                     param = getattr(layer, attr)
-                    if param == "":
+                    if param == "" and attr != "hydration":  # hydration is allowed to be blank
                         missing_params.append(attr)
                     elif param not in valid_params:
                         invalid_params.append((attr, param))

@@ -284,21 +284,27 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
                 return (QtGui.QValidator.State.Acceptable, input_text, pos)
             else:
                 return (QtGui.QValidator.State.Intermediate, input_text, pos)
-        if "e" in input_text or "E" in input_text:
+        elif "e" in input_text or "E" in input_text:
             components = input_text.lower().split("e")
             significand = components[0]
             significand_decimals = len(significand.split(".")[-1])
             exponent = components[1]
             try:
                 exponent_order = int(exponent)
+                _ = float(input_text)  # to ensure that we actually have a number before we accept
                 self.setDecimals(max(significand_decimals - exponent_order, 0))
                 return (QtGui.QValidator.State.Acceptable, input_text, pos)
             except ValueError:
                 return (QtGui.QValidator.State.Intermediate, input_text, pos)
-        if "." in input_text and len(input_text.split(".")[-1]) != self.decimals():
+        elif "." in input_text and len(input_text.split(".")[-1]) != self.decimals():
             self.setDecimals(len(input_text.split(".")[-1]))
             return (QtGui.QValidator.State.Acceptable, input_text, pos)
-        return super().validate(input_text, pos)
+        else:
+            try:
+                _ = float(input_text)  # ensure we have a number
+                return (QtGui.QValidator.State.Acceptable, input_text, pos)
+            except ValueError:
+                return (QtGui.QValidator.State.Intermediate, input_text, pos)
 
 
 class MultiSelectComboBox(QtWidgets.QComboBox):

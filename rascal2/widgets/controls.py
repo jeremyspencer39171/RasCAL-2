@@ -47,8 +47,6 @@ class ControlsWidget(QtWidgets.QWidget):
 
         # create box containing chi-squared value
         chi_layout = QtWidgets.QHBoxLayout()
-        # TODO hook this up when we can actually run
-        # https://github.com/RascalSoftware/RasCAL-2/issues/9
         self.chi_squared = QtWidgets.QLineEdit()
         self.chi_squared.setReadOnly(True)
         chi_layout.addWidget(QtWidgets.QLabel("Current chi-squared:"))

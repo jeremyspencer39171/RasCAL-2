@@ -83,7 +83,9 @@ class SettingsTab(QtWidgets.QWidget):
 
         for i, setting in enumerate(group_settings):
             label_text = setting.replace("_", " ").title()
-            tab_layout.addWidget(QtWidgets.QLabel(label_text), i, 0)
+            label = QtWidgets.QLabel(label_text)
+            label.setToolTip(field_info[setting].description)
+            tab_layout.addWidget(label, i, 0)
             self.widgets[setting] = get_validated_input(field_info[setting])
             try:
                 self.widgets[setting].set_data(getattr(self.settings, setting))

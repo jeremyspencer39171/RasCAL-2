@@ -123,7 +123,7 @@ class ParametersDelegate(QtWidgets.QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         widget = QtWidgets.QComboBox(parent)
         parameters = self.project_widget.draft_project["parameters"]
-        names = [p.name for p in parameters]
+        names = [""] + [p.name for p in parameters]
         widget.addItems(names)
         widget.setCurrentText(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
 
