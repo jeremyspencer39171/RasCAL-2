@@ -425,7 +425,10 @@ class LayerFieldWidget(ProjectFieldWidget):
                     i, delegates.ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table)
                 )
             else:
-                self.table.setItemDelegateForColumn(i, delegates.ParametersDelegate(self.project_widget, self.table))
+                blank_option = self.model.headers[i - 1] == "hydration"
+                self.table.setItemDelegateForColumn(
+                    i, delegates.ParametersDelegate(self.project_widget, self.table, blank_option)
+                )
 
     def set_absorption(self, absorption: bool):
         """Set whether the classlist uses AbsorptionLayers.

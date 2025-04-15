@@ -116,14 +116,17 @@ class ValueSpinBoxDelegate(QtWidgets.QStyledItemDelegate):
 class ParametersDelegate(QtWidgets.QStyledItemDelegate):
     """Item delegate to choose from existing draft project parameters."""
 
-    def __init__(self, project_widget, parent):
+    def __init__(self, project_widget, parent, blank_option: bool = False):
         super().__init__(parent)
         self.project_widget = project_widget
+        self.blank_option = blank_option
 
     def createEditor(self, parent, option, index):
         widget = QtWidgets.QComboBox(parent)
         parameters = self.project_widget.draft_project["parameters"]
-        names = [""] + [p.name for p in parameters]
+        names = [p.name for p in parameters]
+        if self.blank_option:
+            names = [""] + names
         widget.addItems(names)
         widget.setCurrentText(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
 
