@@ -136,12 +136,26 @@ class MainWindowPresenter:
         """Sends an interrupt signal to the RAT runner."""
         self.runner.interrupt()
 
-    def run(self):
-        """Run RAT."""
+    def run(self, procedure: RAT.utils.enums.Procedures = None):
+        """Run RAT.
+
+        Parameters
+        ----------
+        procedure : Procedures, optional
+            What procedure to run with. If None, will use the procedure
+            from the model controls.
+
+        """
         # reset terminal
         self.view.terminal_widget.progress_bar.setVisible(False)
         if self.view.settings.clear_terminal:
             self.view.terminal_widget.clear()
+
+        # saving the old procedure, changing it, and setting it back at the end
+        # is cheaper than copying controls if procedure is not None
+        old_procedure = self.model.controls.procedure
+        if procedure is not None:
+            self.model.controls.procedure = procedure
 
         rat_inputs = RAT.inputs.make_input(self.model.project, self.model.controls)
         display_on = self.model.controls.display != RAT.utils.enums.Display.Off
@@ -151,6 +165,8 @@ class MainWindowPresenter:
         self.runner.stopped.connect(self.handle_interrupt)
         self.runner.event_received.connect(self.handle_event)
         self.runner.start()
+
+        self.model.controls.procedure = old_procedure
 
     def handle_results(self):
         """Handle a RAT run being finished."""

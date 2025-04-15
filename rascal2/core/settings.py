@@ -97,7 +97,7 @@ class Settings(BaseModel, validate_assignment=True, arbitrary_types_allowed=True
     Notes
     -----
     For each system setting, the model field `title` contains the setting group,
-    and the model field `description` gives an English name for the setting.
+    and the model field `description` gives a description for the setting.
     The model fields for a setting can be accessed via Settings.model_fields[setting].
 
     """
@@ -106,6 +106,9 @@ class Settings(BaseModel, validate_assignment=True, arbitrary_types_allowed=True
     # The global settings are read and written via this object using `set_global_settings`.
     style: Styles = Field(default=Styles.Light, title=SettingsGroups.General, description="Style")
     editor_fontsize: int = Field(default=12, title=SettingsGroups.General, description="Editor Font Size", gt=0)
+    live_recalculate: bool = Field(
+        default=True, title=SettingsGroups.General, description="Auto-run simulation when parameter values change."
+    )
 
     log_path: str = Field(default="logs/rascal.log", title=SettingsGroups.Logging, description="Path to Log File")
     log_level: LogLevels = Field(default=LogLevels.Info, title=SettingsGroups.Logging, description="Minimum Log Level")

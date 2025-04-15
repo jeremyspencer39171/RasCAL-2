@@ -85,7 +85,9 @@ class ClassListModel(QtCore.QAbstractTableModel):
                 except pydantic.ValidationError:
                     return False
                 if not self.edit_mode:
-                    self.parent.update_project()
+                    # recalculate plots if value was changed
+                    recalculate = self.index_header(index) == "value"
+                    self.parent.update_project(recalculate)
                 self.dataChanged.emit(index, index)
                 return True
         return False
@@ -237,10 +239,18 @@ class ProjectFieldWidget(QtWidgets.QWidget):
 
         return button
 
-    def update_project(self):
-        """Update the field in the parent Project."""
+    def update_project(self, recalculate: bool):
+        """Update the field in the parent Project.
+
+        Parameters
+        ----------
+        recalculate : bool
+            Whether to recalculate the plots when the project updates.
+        """
         presenter = self.parent.parent.parent.presenter
         presenter.edit_project({self.field: self.model.classlist})
+        if recalculate and presenter.view.settings.live_recalculate:
+            presenter.run("calculate")
 
 
 class ParametersModel(ClassListModel):
