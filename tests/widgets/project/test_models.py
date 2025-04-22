@@ -10,8 +10,8 @@ from RATapi.utils.enums import Languages
 
 import rascal2.widgets.delegates as delegates
 import rascal2.widgets.inputs as inputs
-from rascal2.widgets.project.models import (
-    ClassListModel,
+from rascal2.widgets.project.tables import (
+    ClassListTableModel,
     CustomFileModel,
     CustomFileWidget,
     DomainContrastWidget,
@@ -52,8 +52,8 @@ def classlist():
 
 @pytest.fixture
 def table_model(classlist):
-    """A test ClassListModel."""
-    return ClassListModel(classlist, parent)
+    """A test ClassListTableModel."""
+    return ClassListTableModel(classlist, parent)
 
 
 @pytest.fixture
@@ -93,7 +93,7 @@ parent = MockMainWindow()
 
 
 def test_model_init(table_model, classlist):
-    """Test that initialisation works correctly for ClassListModels."""
+    """Test that initialisation works correctly for ClassListTableModels."""
     model = table_model
 
     assert model.classlist == classlist
@@ -363,12 +363,12 @@ def test_layer_widget_delegates(init_class):
 
     expected_delegates = {
         "name": delegates.ValidatedInputDelegate,
-        "thickness": delegates.ParametersDelegate,
-        "SLD": delegates.ParametersDelegate,
-        "SLD_real": delegates.ParametersDelegate,
-        "SLD_imaginary": delegates.ParametersDelegate,
-        "roughness": delegates.ParametersDelegate,
-        "hydration": delegates.ParametersDelegate,
+        "thickness": delegates.ProjectFieldDelegate,
+        "SLD": delegates.ProjectFieldDelegate,
+        "SLD_real": delegates.ProjectFieldDelegate,
+        "SLD_imaginary": delegates.ProjectFieldDelegate,
+        "roughness": delegates.ProjectFieldDelegate,
+        "hydration": delegates.ProjectFieldDelegate,
         "hydrate_with": delegates.ValidatedInputDelegate,
     }
 

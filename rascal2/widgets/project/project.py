@@ -1,13 +1,17 @@
 """Widget for the Project window."""
 
+from collections.abc import Generator
 from copy import deepcopy
 
 import RATapi
+from pydantic import ValidationError
 from PyQt6 import QtCore, QtGui, QtWidgets
+from RATapi.utils.custom_errors import custom_pydantic_validation_error
 from RATapi.utils.enums import Calculations, Geometries, LayerModels
 
 from rascal2.config import path_for
-from rascal2.widgets.project.models import (
+from rascal2.widgets.project.lists import ContrastWidget
+from rascal2.widgets.project.tables import (
     CustomFileWidget,
     DomainContrastWidget,
     LayerFieldWidget,
@@ -45,12 +49,16 @@ class ProjectWidget(QtWidgets.QWidget):
             "Backgrounds": [],
             "Domains": ["domain_ratios", "domain_contrasts"],
             "Custom Files": ["custom_files"],
-            "Contrasts": [],
+            "Contrasts": ["contrasts"],
         }
+        # track which tabs are lists (for syncing)
+        self.list_tabs = ["Contrasts"]
 
         self.view_tabs = {}
         self.edit_tabs = {}
         self.draft_project = None
+        # for making model type changes non-destructive
+        self.old_contrast_models = {}
 
         project_view = self.create_project_view()
         project_edit = self.create_edit_view()
@@ -200,10 +208,18 @@ class ProjectWidget(QtWidgets.QWidget):
         self.edit_absorption_checkbox.checkStateChanged.connect(
             lambda s: self.update_draft_project({"absorption": s == QtCore.Qt.CheckState.Checked})
         )
+        # when calculation type changed, update the draft project, show/hide the domains tab,
+        # and change contrasts to have ratio
         self.calculation_combobox.currentTextChanged.connect(lambda s: self.update_draft_project({"calculation": s}))
         self.calculation_combobox.currentTextChanged.connect(lambda: self.handle_tabs())
-        self.model_combobox.currentTextChanged.connect(lambda s: self.update_draft_project({"model": s}))
+        self.calculation_combobox.currentTextChanged.connect(
+            lambda s: self.edit_tabs["Contrasts"].tables["contrasts"].set_domains(s == Calculations.Domains)
+        )
+
+        # when model type changed, hide/show layers tab and change model field in contrasts
         self.model_combobox.currentTextChanged.connect(lambda: self.handle_tabs())
+        self.model_combobox.currentTextChanged.connect(lambda s: self.handle_model_update(s))
+
         self.geometry_combobox.currentTextChanged.connect(lambda s: self.update_draft_project({"geometry": s}))
         self.edit_project_tab = QtWidgets.QTabWidget()
 
@@ -214,6 +230,10 @@ class ProjectWidget(QtWidgets.QWidget):
         self.edit_absorption_checkbox.checkStateChanged.connect(
             lambda s: self.edit_tabs["Layers"].tables["layers"].set_absorption(s == QtCore.Qt.CheckState.Checked)
         )
+
+        for tab in ["Experimental Parameters", "Layers", "Backgrounds", "Domains"]:
+            for table in self.edit_tabs[tab].tables.values():
+                table.edited.connect(lambda: self.edit_tabs["Contrasts"].tables["contrasts"].update_item_view())
 
         main_layout.addWidget(self.edit_project_tab)
 
@@ -227,6 +247,10 @@ class ProjectWidget(QtWidgets.QWidget):
         # because we don't want validation errors going off while editing the model is in-progress
         self.draft_project: dict = create_draft_project(self.parent_model.project)
 
+        for tab in self.tabs:
+            self.view_tabs[tab].update_model(self.draft_project)
+            self.edit_tabs[tab].update_model(self.draft_project)
+
         self.absorption_checkbox.setChecked(self.parent_model.project.absorption)
         self.calculation_type.setText(self.parent_model.project.calculation)
         self.model_type.setText(self.parent_model.project.model)
@@ -236,10 +260,6 @@ class ProjectWidget(QtWidgets.QWidget):
         self.calculation_combobox.setCurrentText(self.parent_model.project.calculation)
         self.model_combobox.setCurrentText(self.parent_model.project.model)
         self.geometry_combobox.setCurrentText(self.parent_model.project.geometry)
-
-        for tab in self.tabs:
-            self.view_tabs[tab].update_model(self.draft_project)
-            self.edit_tabs[tab].update_model(self.draft_project)
 
         self.handle_tabs()
         self.handle_controls_update()
@@ -283,6 +303,32 @@ class ProjectWidget(QtWidgets.QWidget):
             self.view_tabs[tab].handle_controls_update(controls)
             self.edit_tabs[tab].handle_controls_update(controls)
 
+    def handle_model_update(self, new_type):
+        """Handle updates to the model type.
+
+        Parameters
+        ----------
+        new_type : LayerModels
+            The new layer model.
+
+        """
+        if self.draft_project is None:
+            return
+
+        old_type = self.draft_project["model"]
+        self.update_draft_project({"model": new_type})
+
+        # we use 'xor' (^) as "if the old type was standard layers and the new type isn't, or vice versa"
+        if (old_type == LayerModels.StandardLayers) ^ (new_type == LayerModels.StandardLayers):
+            old_contrast_models = {}
+            # clear contrasts as what the 'model' means has changed!
+            for contrast in self.draft_project["contrasts"]:
+                old_contrast_models[contrast.name] = contrast.model
+                contrast.model = self.old_contrast_models.get(contrast.name, [])
+
+            self.old_contrast_models = old_contrast_models
+            self.edit_tabs["Contrasts"].tables["contrasts"].update_item_view()
+
     def show_project_view(self) -> None:
         """Show project view"""
         self.setWindowTitle("Project")
@@ -292,32 +338,80 @@ class ProjectWidget(QtWidgets.QWidget):
     def show_edit_view(self) -> None:
         """Show edit view"""
         self.setWindowTitle("Edit Project")
+
+        # sync selected items for list tabs
+        view_indices = {
+            tab: self.view_tabs[tab].tables[tab.lower()].list.selectionModel().currentIndex().row()
+            for tab in self.list_tabs
+        }
+
         self.update_project_view()
         self.parent.controls_widget.run_button.setEnabled(False)
+
+        for tab in self.list_tabs:
+            edit_widget = self.edit_tabs[tab].tables[tab.lower()]
+            idx = view_indices[tab]
+            edit_widget.list.selectionModel().setCurrentIndex(
+                edit_widget.model.index(idx, 0), QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
+            )
+
         self.stacked_widget.setCurrentIndex(1)
 
     def save_changes(self) -> None:
         """Save changes to the project."""
-        try:
-            self.validate_draft_project()
-        except ValueError as err:
-            self.parent.terminal_widget.write_error(f"Could not save draft project:\n  {err}")
-        else:
-            self.parent.presenter.edit_project(self.draft_project)
-            self.update_project_view()
-            self.parent.controls_widget.run_button.setEnabled(True)
-            self.show_project_view()
+        # sync list items (wrap around update_project_view() which sets them to zero by default)
+        # the list can lose focus when a contrast is edited... default to first item if this happens
+        edit_indices = {
+            tab: max(self.edit_tabs[tab].tables[tab.lower()].list.selectionModel().currentIndex().row(), 0)
+            for tab in self.list_tabs
+        }
 
-    def validate_draft_project(self):
-        """Check that the draft project is valid."""
-        errors = []
-        if self.draft_project["model"] == LayerModels.StandardLayers and self.draft_project["layers"]:
-            layer_attrs = list(self.draft_project["layers"][0].model_fields)
+        errors = "\n  ".join(self.validate_draft_project())
+        if errors:
+            self.parent.terminal_widget.write_error(f"Could not save draft project:\n  {errors}")
+        else:
+            # catch errors from Pydantic as fallback rather than crashing
+            try:
+                self.parent.presenter.edit_project(self.draft_project)
+            except ValidationError as err:
+                custom_error_list = custom_pydantic_validation_error(err.errors(include_url=False))
+                custom_errors = ValidationError.from_exception_data(err.title, custom_error_list, hide_input=True)
+                self.parent.terminal_widget.write_error(f"Could not save draft project:\n  {custom_errors}")
+            else:
+                self.update_project_view()
+                self.parent.controls_widget.run_button.setEnabled(True)
+
+                for tab in self.list_tabs:
+                    view_widget = self.view_tabs[tab].tables[tab.lower()]
+                    idx = edit_indices[tab]
+                    view_widget.list.selectionModel().setCurrentIndex(
+                        view_widget.model.index(idx, 0), QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
+                    )
+
+                self.show_project_view()
+
+    def validate_draft_project(self) -> Generator[str, None, None]:
+        """Get all errors with the draft project."""
+        yield from self.validate_layers()
+        yield from self.validate_contrasts()
+
+    def validate_layers(self) -> Generator[str, None, None]:
+        """Ensure that all layers in the draft project are valid, and yield errors if not.
+
+        Yields
+        ------
+        str
+            The message for each error in layers.
+
+        """
+        project = self.draft_project
+        if project["model"] == LayerModels.StandardLayers and project["layers"]:
+            layer_attrs = list(project["layers"][0].model_fields)
             layer_attrs.remove("name")
             layer_attrs.remove("hydrate_with")
             # ensure all layer parameters have been filled in, and all names are parameters that exist
-            valid_params = [p.name for p in self.draft_project["parameters"]] + [""]
-            for i, layer in enumerate(self.draft_project["layers"]):
+            valid_params = [p.name for p in project["parameters"]] + [""]
+            for i, layer in enumerate(project["layers"]):
                 missing_params = []
                 invalid_params = []
                 for attr in layer_attrs:
@@ -330,16 +424,77 @@ class ProjectWidget(QtWidgets.QWidget):
                 if missing_params:
                     noun = "a parameter" if len(missing_params) == 1 else "parameters"
                     msg = f"Layer '{layer.name}' (row {i + 1}) is missing {noun}: {', '.join(missing_params)}"
-                    errors.append(msg)
+                    yield msg
                 if invalid_params:
                     noun = "an invalid value" if len(invalid_params) == 1 else "invalid values"
                     msg = f"Layer '{layer.name}' (row {i + 1}) has {noun}: {{0}}".format(
                         ",\n  ".join(f'"{v}" for parameter {p}' for p, v in invalid_params)
                     )
-                    errors.append(msg)
+                    yield msg
 
-        if errors:
-            raise ValueError("\n  ".join(errors))
+    def validate_contrasts(self) -> Generator[str, None, None]:
+        """Ensure that all contrast parameters in the draft project are valid, and yield errors if not.
+
+        Yields
+        ------
+        str
+            The messages for each error in contrasts.
+
+        """
+        project = self.draft_project
+        if project["contrasts"]:
+            contrast_attrs = list(project["contrasts"][0].model_fields)
+            contrast_attrs.remove("name")
+            contrast_attrs.remove("background_action")
+            contrast_attrs.remove("model")
+            contrast_attrs.remove("resample")
+            for i, contrast in enumerate(project["contrasts"]):
+                missing_params = []
+                invalid_params = []
+                for attr in contrast_attrs:
+                    project_field_name = attr if attr in ["data", "bulk_in", "bulk_out"] else attr + "s"
+                    valid_params = [p.name for p in project[project_field_name]]
+                    param = getattr(contrast, attr)
+                    if param == "":
+                        missing_params.append(attr)
+                    elif param not in valid_params:
+                        invalid_params.append((attr, param))
+
+                if missing_params:
+                    msg = f"Contrast '{contrast.name}' (row {i + 1}) is missing: {', '.join(missing_params)}"
+                    yield msg
+                if invalid_params:
+                    noun = "an invalid value" if len(invalid_params) == 1 else "invalid values"
+                    msg = f"Contrast '{contrast.name}' (row {i + 1}) has {noun}: {{0}}".format(
+                        ",\n  ".join(f'"{v}" for field {p}' for p, v in invalid_params)
+                    )
+                    yield msg
+
+                model = contrast.model
+                if project["model"] == LayerModels.StandardLayers:
+                    if project["calculation"] == Calculations.Domains:
+                        model_field_name = "domain_contrasts"
+                    else:
+                        model_field_name = "layers"
+                    valid_params = [p.name for p in project[model_field_name]]
+                    # strip out empty items
+                    model = [item for item in model if item != ""]
+                    invalid_model_vals = [item for item in model if item not in valid_params]
+                    # this is the fastest way to get all unique items from a list without changing the order...
+                    invalid_model_vals = list(dict.fromkeys(invalid_model_vals))
+                    if invalid_model_vals:
+                        noun = "an invalid model value" if len(invalid_model_vals) == 1 else "invalid model values"
+                        msg = f"Contrast '{contrast.name}' (row {i + 1}) has {noun}: {{0}}".format(
+                            ", ".join(invalid_model_vals)
+                        )
+                        yield msg
+                else:
+                    if not model:
+                        msg = f"Contrast '{contrast.name}' (row {i + 1}) has no model set"
+                        yield msg
+                    elif model[0] not in [f.name for f in project["custom_files"]]:
+                        msg = f"Contrast '{contrast.name}' (row {i + 1}) has invalid model: {model[0]}"
+                        yield msg
 
     def cancel_changes(self) -> None:
         """Cancel changes to the project."""
@@ -386,6 +541,8 @@ class ProjectTabWidget(QtWidgets.QWidget):
                 self.tables[field] = DomainContrastWidget(field, self)
             elif field == "custom_files":
                 self.tables[field] = CustomFileWidget(field, self)
+            elif field == "contrasts":
+                self.tables[field] = ContrastWidget(field, self)
             else:
                 self.tables[field] = ProjectFieldWidget(field, self)
             layout.addWidget(self.tables[field])
@@ -417,8 +574,6 @@ class ProjectTabWidget(QtWidgets.QWidget):
             table.update_model(classlist)
             if self.edit_mode:
                 table.edit()
-            if "layers" in self.tables:
-                self.tables["layers"].set_absorption(new_model["absorption"])
 
     def handle_controls_update(self, controls):
         """Reflect changes to the Controls object."""

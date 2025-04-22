@@ -113,22 +113,29 @@ class ValueSpinBoxDelegate(QtWidgets.QStyledItemDelegate):
         model.setData(index, data, QtCore.Qt.ItemDataRole.EditRole)
 
 
-class ParametersDelegate(QtWidgets.QStyledItemDelegate):
+class ProjectFieldDelegate(QtWidgets.QStyledItemDelegate):
     """Item delegate to choose from existing draft project parameters."""
 
-    def __init__(self, project_widget, parent, blank_option: bool = False):
+    def __init__(self, project_widget, field, parent, blank_option: bool = False):
         super().__init__(parent)
+        self.field = field
         self.project_widget = project_widget
         self.blank_option = blank_option
 
     def createEditor(self, parent, option, index):
         widget = QtWidgets.QComboBox(parent)
-        parameters = self.project_widget.draft_project["parameters"]
+        parameters = self.project_widget.draft_project[self.field]
         names = [p.name for p in parameters]
         if self.blank_option:
             names = [""] + names
         widget.addItems(names)
         widget.setCurrentText(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
+
+        # make combobox searchable
+        widget.setEditable(True)
+        widget.setInsertPolicy(widget.InsertPolicy.NoInsert)
+        widget.setFrame(False)
+        widget.completer().setCompletionMode(QtWidgets.QCompleter.CompletionMode.PopupCompletion)
 
         return widget
 

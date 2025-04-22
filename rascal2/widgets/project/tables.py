@@ -15,7 +15,7 @@ from rascal2.config import path_for
 from rascal2.dialogs.custom_file_editor import edit_file, edit_file_matlab
 
 
-class ClassListModel(QtCore.QAbstractTableModel):
+class ClassListTableModel(QtCore.QAbstractTableModel):
     """Table model for a project ClassList field.
 
     Parameters
@@ -45,7 +45,7 @@ class ClassListModel(QtCore.QAbstractTableModel):
         self.classlist = classlist
         self.item_type = classlist._class_handle
         if not issubclass(self.item_type, pydantic.BaseModel):
-            raise NotImplementedError("ClassListModel only works for classlists of Pydantic models!")
+            raise NotImplementedError("ClassListTableModel only works for classlists of Pydantic models!")
         self.headers = list(self.item_type.model_fields)
 
     def rowCount(self, parent=None) -> int:
@@ -155,7 +155,11 @@ class ProjectFieldWidget(QtWidgets.QWidget):
 
     """
 
-    classlist_model = ClassListModel
+    classlist_model = ClassListTableModel
+
+    # the model can change and disconnect, so we re-connect it
+    # to a signal here on each change
+    edited = QtCore.pyqtSignal()
 
     def __init__(self, field: str, parent):
         super().__init__(parent)
@@ -185,6 +189,8 @@ class ProjectFieldWidget(QtWidgets.QWidget):
         self.model = self.classlist_model(classlist, self)
 
         self.table.setModel(self.model)
+        self.model.dataChanged.connect(lambda: self.edited.emit())
+        self.model.modelReset.connect(lambda: self.edited.emit())
         self.table.hideColumn(0)
         self.set_item_delegates()
         header = self.table.horizontalHeader()
@@ -253,7 +259,7 @@ class ProjectFieldWidget(QtWidgets.QWidget):
             presenter.run("calculate")
 
 
-class ParametersModel(ClassListModel):
+class ParametersModel(ClassListTableModel):
     """Classlist model for Parameters."""
 
     def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
@@ -330,7 +336,7 @@ class ParameterFieldWidget(ProjectFieldWidget):
                 self.table.setIndexWidget(self.model.index(i, 0), None)
 
 
-class LayersModel(ClassListModel):
+class LayersModel(ClassListTableModel):
     """Classlist model for Layers."""
 
     def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
@@ -398,16 +404,6 @@ class LayersModel(ClassListModel):
             self.endResetModel()
 
 
-class ContrastsModel(ClassListModel):
-    """Classlist model for Contrasts."""
-
-    def flags(self, index):
-        flags = super().flags(index)
-        if self.edit_mode:
-            flags |= QtCore.Qt.ItemFlag.ItemIsEditable
-        return flags
-
-
 class LayerFieldWidget(ProjectFieldWidget):
     """Project field widget for Layer objects."""
 
@@ -427,7 +423,7 @@ class LayerFieldWidget(ProjectFieldWidget):
             else:
                 blank_option = self.model.headers[i - 1] == "hydration"
                 self.table.setItemDelegateForColumn(
-                    i, delegates.ParametersDelegate(self.project_widget, self.table, blank_option)
+                    i, delegates.ProjectFieldDelegate(self.project_widget, "parameters", self.table, blank_option)
                 )
 
     def set_absorption(self, absorption: bool):
@@ -444,7 +440,7 @@ class LayerFieldWidget(ProjectFieldWidget):
             self.edit()
 
 
-class DomainsModel(ClassListModel):
+class DomainsModel(ClassListTableModel):
     """Classlist model for domain contrasts."""
 
     def flags(self, index):
@@ -477,7 +473,7 @@ class DomainContrastWidget(ProjectFieldWidget):
         self.table.setItemDelegateForColumn(2, delegates.MultiSelectLayerDelegate(self.project_widget, self.table))
 
 
-class CustomFileModel(ClassListModel):
+class CustomFileModel(ClassListTableModel):
     """Classlist model for custom files."""
 
     def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
