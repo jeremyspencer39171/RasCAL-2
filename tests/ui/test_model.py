@@ -49,7 +49,7 @@ def test_load_project():
 
     with TemporaryDirectory() as tmpdir:
         Controls(procedure="dream", resampleMinAngle=0.5).save(tmpdir, "controls")
-        project.save(tmpdir, "project")
+        project.save(Path(tmpdir, "project"))
         model.load_project(tmpdir)
 
     assert model.controls == Controls(procedure="dream", resampleMinAngle=0.5)
@@ -57,7 +57,7 @@ def test_load_project():
     assert model.project.name == "test project"
 
 
-@patch("RATapi.utils.convert.r1_to_project_class")
+@patch("RATapi.utils.convert.r1_to_project")
 def test_load_r1_project(mock_r1_class):
     """load_r1_project should call the conversion function and set the path correctly."""
     model = MainWindowModel()

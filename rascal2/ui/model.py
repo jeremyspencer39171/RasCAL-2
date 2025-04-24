@@ -75,8 +75,8 @@ class MainWindowModel(QtCore.QObject):
     def save_project(self):
         """Save the project to the save path."""
 
-        self.controls.save(self.save_path, "controls")
-        self.project.save(self.save_path, "project")
+        self.controls.save(self.save_path, "controls.json")
+        self.project.save(Path(self.save_path, "project.json"))
 
     def load_project(self, load_path: str):
         """Load a project from a project folder.
@@ -126,7 +126,7 @@ class MainWindowModel(QtCore.QObject):
             The path to the RasCAL-1 file.
 
         """
-        self.project = RAT.utils.convert.r1_to_project_class(load_path)
+        self.project = RAT.utils.convert.r1_to_project(load_path)
         self.controls = RAT.Controls()
         self.save_path = str(Path(load_path).parent)
 
