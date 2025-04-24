@@ -151,6 +151,9 @@ class MainWindowPresenter:
         if self.view.settings.clear_terminal:
             self.view.terminal_widget.clear()
 
+        # hide bayes plots button so users can't open plots during run
+        self.view.plot_widget.bayes_plots_button.setVisible(False)
+
         # saving the old procedure, changing it, and setting it back at the end
         # is cheaper than copying controls if procedure is not None
         old_procedure = self.model.controls.procedure

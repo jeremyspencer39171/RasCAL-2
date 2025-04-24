@@ -31,6 +31,7 @@ class MockWindowView(QtWidgets.QMainWindow):
         self.undo_stack = MockUndoStack()
         self.controls_widget = MagicMock()
         self.terminal_widget = MagicMock()
+        self.plot_widget = MagicMock()
         self.handle_results = MagicMock()
         self.reset_widgets = MagicMock()
         self.logging = MagicMock()
