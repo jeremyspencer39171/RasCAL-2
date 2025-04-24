@@ -3,6 +3,7 @@
 from typing import Literal
 
 from PyQt6 import QtCore, QtGui, QtWidgets
+from RATapi.utils.enums import TypeOptions
 
 from rascal2.widgets.inputs import AdaptiveDoubleSpinBox, MultiSelectComboBox, get_validated_input
 
@@ -10,10 +11,13 @@ from rascal2.widgets.inputs import AdaptiveDoubleSpinBox, MultiSelectComboBox, g
 class ValidatedInputDelegate(QtWidgets.QStyledItemDelegate):
     """Item delegate for validated inputs."""
 
-    def __init__(self, field_info, parent):
+    def __init__(self, field_info, parent, remove_items: list[int] = None):
         super().__init__(parent)
         self.table = parent
         self.field_info = field_info
+
+        # this parameter is mostly just a hacky thing to remove function resolutions
+        self.remove_items = remove_items
 
     def createEditor(self, parent, option, index):
         widget = get_validated_input(self.field_info, parent)
@@ -22,6 +26,10 @@ class ValidatedInputDelegate(QtWidgets.QStyledItemDelegate):
         # fill in background as otherwise you can see the original View text underneath
         widget.setAutoFillBackground(True)
         widget.setBackgroundRole(QtGui.QPalette.ColorRole.Base)
+
+        if self.remove_items is not None:
+            for item in self.remove_items:
+                widget.editor.removeItem(item)
 
         return widget
 
@@ -146,6 +154,28 @@ class ProjectFieldDelegate(QtWidgets.QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         data = editor.currentText()
         model.setData(index, data, QtCore.Qt.ItemDataRole.EditRole)
+
+
+class SignalSourceDelegate(QtWidgets.QStyledItemDelegate):
+    """Item delegate to choose from draft project parameters, with a check for different source types."""
+
+    def __init__(self, project_widget, parameter_field, parent):
+        super().__init__(parent)
+        self.parameter_field = parameter_field
+        self.project_widget = project_widget
+        self.parent = parent
+
+    def createEditor(self, parent, option, index):
+        match index.siblingAtColumn(index.column() - 1).data(QtCore.Qt.ItemDataRole.DisplayRole):
+            case TypeOptions.Constant:
+                field = self.parameter_field
+            case TypeOptions.Data:
+                field = "data"
+            case TypeOptions.Function:
+                field = "custom_files"
+        editor_delegate = ProjectFieldDelegate(self.project_widget, field, self.parent)
+
+        return editor_delegate.createEditor(parent, option, index)
 
 
 class MultiSelectLayerDelegate(QtWidgets.QStyledItemDelegate):

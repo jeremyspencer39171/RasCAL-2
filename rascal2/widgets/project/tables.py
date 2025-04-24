@@ -8,7 +8,7 @@ from pathlib import Path
 import pydantic
 import RATapi
 from PyQt6 import QtCore, QtGui, QtWidgets
-from RATapi.utils.enums import Languages, Procedures
+from RATapi.utils.enums import Languages, Procedures, TypeOptions
 
 import rascal2.widgets.delegates as delegates
 from rascal2.config import path_for
@@ -81,7 +81,8 @@ class ClassListTableModel(QtCore.QAbstractTableModel):
                 value = QtCore.Qt.CheckState(value) == QtCore.Qt.CheckState.Checked
             if param is not None:
                 try:
-                    setattr(self.classlist[row], param, value)
+                    with contextlib.suppress(UserWarning):
+                        setattr(self.classlist[row], param, value)
                 except pydantic.ValidationError:
                     return False
                 if not self.edit_mode:
@@ -166,6 +167,7 @@ class ProjectFieldWidget(QtWidgets.QWidget):
         self.field = field
         header = field.replace("_", " ").title()
         self.parent = parent
+        self.project_widget = parent.parent
         self.table = QtWidgets.QTableView(parent)
         self.table.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding
@@ -409,10 +411,6 @@ class LayerFieldWidget(ProjectFieldWidget):
 
     classlist_model = LayersModel
 
-    def __init__(self, field, parent):
-        super().__init__(field, parent)
-        self.project_widget = parent.parent
-
     def set_item_delegates(self):
         for i in range(1, self.model.columnCount()):
             if i in [1, self.model.columnCount() - 1]:
@@ -626,3 +624,109 @@ class CustomFileWidget(ProjectFieldWidget):
             filename_index, delegates.ValidatedInputDelegate(self.model.item_type.model_fields["path"], self.table)
         )
         self.table.setItemDelegateForColumn(function_index, delegates.CustomFileFunctionDelegate(self))
+
+
+class AbstractSignalModel(ClassListTableModel):
+    """Model for Signal objects (backgrounds and resolutions)."""
+
+    def flags(self, index):
+        flags = super().flags(index)
+        if self.edit_mode:
+            flags |= QtCore.Qt.ItemFlag.ItemIsEditable
+        match self.classlist[index.row()].type:  # disable unused value fields
+            case TypeOptions.Constant:
+                disable_from_col = self.num_valid_values[0]
+            case TypeOptions.Data:
+                disable_from_col = self.num_valid_values[1]
+            case TypeOptions.Function:
+                disable_from_col = self.num_valid_values[2]
+        if index.column() > disable_from_col + 3:  # +3 offset for name, type, source
+            flags = QtCore.Qt.ItemFlag.NoItemFlags
+        return flags
+
+    @property
+    def num_valid_values(self) -> tuple[int]:
+        """The number of valid value fields for each type.
+
+        Returns
+        -------
+        Tuple[int]
+            The number of valid values for constant, data, and function signals respectively.
+
+        """
+        raise NotImplementedError
+
+
+class BackgroundsModel(AbstractSignalModel):
+    """Model for classlists of Backgrounds."""
+
+    @property
+    def num_valid_values(self) -> tuple[int]:
+        return (0, 1, 5)
+
+
+class ResolutionsModel(AbstractSignalModel):
+    """Model for classlists of Resolutions."""
+
+    @property
+    def num_valid_values(self) -> tuple[int]:
+        return (0, -1, 5)  # -1 to remove 'source' field for data resolutions
+
+
+class AbstractSignalFieldWidget(ProjectFieldWidget):
+    """Project field widget for 'signal' objects (backgrounds and resolutions)."""
+
+    def set_item_delegates(self):
+        super().set_item_delegates()
+        source_index = self.model.headers.index("source") + 1
+        self.table.setItemDelegateForColumn(
+            source_index, delegates.SignalSourceDelegate(self.project_widget, self.parameter_field, self.table)
+        )
+        for column in range(source_index + 1, self.model.columnCount()):
+            self.table.setItemDelegateForColumn(
+                column, delegates.ProjectFieldDelegate(self.project_widget, self.parameter_field, self.table)
+            )
+
+    @property
+    def parameter_field(self) -> str:
+        """The relevant parameter field for the object.
+
+        Returns
+        -------
+        str
+            The name of the relevant parameter field for the object.
+
+        """
+        raise NotImplementedError
+
+
+class BackgroundsFieldWidget(AbstractSignalFieldWidget):
+    """Project field widget for backgrounds."""
+
+    classlist_model = BackgroundsModel
+
+    @property
+    def parameter_field(self) -> str:
+        return "background_parameters"
+
+
+class ResolutionsFieldWidget(AbstractSignalFieldWidget):
+    """Project field widget for resolutions."""
+
+    classlist_model = ResolutionsModel
+
+    def set_item_delegates(self):
+        super().set_item_delegates()
+        # workaround to remove function resolution option
+        type_index = self.model.headers.index("type") + 1
+        self.table.setItemDelegateForColumn(
+            type_index,
+            delegates.ValidatedInputDelegate(self.model.item_type.model_fields["type"], self.table, remove_items=[2]),
+        )
+        # hide unused value_2 through value_5
+        for column in range(4, 9):
+            self.table.setColumnHidden(column, True)
+
+    @property
+    def parameter_field(self) -> str:
+        return "resolution_parameters"

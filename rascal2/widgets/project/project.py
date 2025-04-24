@@ -12,11 +12,13 @@ from RATapi.utils.enums import Calculations, Geometries, LayerModels
 from rascal2.config import path_for
 from rascal2.widgets.project.lists import ContrastWidget
 from rascal2.widgets.project.tables import (
+    BackgroundsFieldWidget,
     CustomFileWidget,
     DomainContrastWidget,
     LayerFieldWidget,
     ParameterFieldWidget,
     ProjectFieldWidget,
+    ResolutionsFieldWidget,
 )
 
 
@@ -46,7 +48,8 @@ class ProjectWidget(QtWidgets.QWidget):
             "Experimental Parameters": ["scalefactors", "bulk_in", "bulk_out"],
             "Layers": ["layers"],
             "Data": [],
-            "Backgrounds": [],
+            "Backgrounds": ["background_parameters", "backgrounds"],
+            "Resolutions": ["resolution_parameters", "resolutions"],
             "Domains": ["domain_ratios", "domain_contrasts"],
             "Custom Files": ["custom_files"],
             "Contrasts": ["contrasts"],
@@ -535,6 +538,10 @@ class ProjectTabWidget(QtWidgets.QWidget):
         for field in self.fields:
             if field in RATapi.project.parameter_class_lists:
                 self.tables[field] = ParameterFieldWidget(field, self)
+            elif field == "backgrounds":
+                self.tables[field] = BackgroundsFieldWidget(field, self)
+            elif field == "resolutions":
+                self.tables[field] = ResolutionsFieldWidget(field, self)
             elif field == "layers":
                 self.tables[field] = LayerFieldWidget(field, self)
             elif field == "domain_contrasts":

@@ -11,6 +11,7 @@ from RATapi.utils.enums import Languages
 import rascal2.widgets.delegates as delegates
 import rascal2.widgets.inputs as inputs
 from rascal2.widgets.project.tables import (
+    BackgroundsModel,
     ClassListTableModel,
     CustomFileModel,
     CustomFileWidget,
@@ -21,6 +22,7 @@ from rascal2.widgets.project.tables import (
     ParameterFieldWidget,
     ParametersModel,
     ProjectFieldWidget,
+    ResolutionsModel,
 )
 
 
@@ -490,3 +492,46 @@ def test_file_widget_edit(filename):
             assert len(button.menu().actions()) == 2
         else:
             assert button.menu() is None
+
+
+@pytest.mark.parametrize(
+    "background_type, disabled_vals",
+    [
+        ("constant", ["value_1", "value_2", "value_3", "value_4", "value_5"]),
+        ("data", ["value_2", "value_3", "value_4", "value_5"]),
+        ("function", []),
+    ],
+)
+def test_background_disable_values(background_type, disabled_vals):
+    """Test that unnecessary values are disabled in the Background model."""
+    classlist = RATapi.ClassList(RATapi.models.Background(name="Background", type=background_type))
+
+    model = BackgroundsModel(classlist, parent)
+
+    for column in range(0, model.columnCount()):
+        index = model.index(0, column)
+        if model.index_header(index) in disabled_vals:
+            assert not model.flags(index) & QtCore.Qt.ItemFlag.ItemIsEnabled
+        else:
+            assert model.flags(index) & QtCore.Qt.ItemFlag.ItemIsEnabled
+
+
+@pytest.mark.parametrize(
+    "resolution_type, disabled_vals",
+    [
+        ("constant", ["value_1", "value_2", "value_3", "value_4", "value_5"]),
+        ("data", ["source", "value_1", "value_2", "value_3", "value_4", "value_5"]),
+    ],
+)
+def test_resolution_disable_values(resolution_type, disabled_vals):
+    """Test that unnecessary values are disabled in the Background model."""
+    classlist = RATapi.ClassList(RATapi.models.Resolution(name="Resolution", type=resolution_type))
+
+    model = ResolutionsModel(classlist, parent)
+
+    for column in range(0, model.columnCount()):
+        index = model.index(0, column)
+        if model.index_header(index) in disabled_vals:
+            assert not model.flags(index) & QtCore.Qt.ItemFlag.ItemIsEnabled
+        else:
+            assert model.flags(index) & QtCore.Qt.ItemFlag.ItemIsEnabled
