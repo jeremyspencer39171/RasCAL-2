@@ -75,7 +75,7 @@ def run(queue, rat_inputs: tuple, procedure: str, display: bool):
         Whether to display events.
 
     """
-    problem_definition, limits, priors, cpp_controls = rat_inputs
+    problem_definition, cpp_controls = rat_inputs
 
     if display:
         RAT.events.register(RAT.events.EventTypes.Message, queue.put)
@@ -84,9 +84,7 @@ def run(queue, rat_inputs: tuple, procedure: str, display: bool):
         queue.put(LogData(INFO, "Starting RAT"))
 
     try:
-        problem_definition, output_results, bayes_results = RAT.rat_core.RATMain(
-            problem_definition, limits, cpp_controls, priors
-        )
+        problem_definition, output_results, bayes_results = RAT.rat_core.RATMain(problem_definition, cpp_controls)
         results = RAT.outputs.make_results(procedure, output_results, bayes_results)
     except Exception as err:
         queue.put(err)

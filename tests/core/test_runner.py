@@ -1,5 +1,7 @@
 """Tests for the RATRunner class."""
 
+import contextlib
+import os
 from queue import Queue  # we need a non-multiprocessing queue because mocks cannot be serialised
 from unittest.mock import MagicMock, patch
 
@@ -99,7 +101,7 @@ def test_empty_queue(mock_process):
 def test_run(display):
     """Test that a run puts the correct items in the queue."""
     queue = Queue()
-    run(queue, [0, 1, 2, 3], "", display)
+    run(queue, [0, 1], "", display)
     expected_display = [
         LogData(20, "Starting RAT"),
         0.2,
@@ -132,7 +134,7 @@ def test_run_error():
 
     queue = Queue()
     with patch("RATapi.rat_core.RATMain", new=erroring_ratmain):
-        run(queue, [0, 1, 2, 3], "", True)
+        run(queue, [0, 1], "", True)
 
     queue.put(None)
     queue_contents = list(iter(queue.get, None))
@@ -141,3 +143,25 @@ def test_run_error():
     error = queue_contents[1]
     assert isinstance(error, ValueError)
     assert str(error) == "RAT Main Error!"
+
+
+@pytest.mark.parametrize("example", RAT.examples.__all__)
+def test_run_examples(example):
+    """Test that the run function runs without an error on the RATapi example projects."""
+    # skip convert rascal example
+    if example == "convert_rascal":
+        return
+
+    # suppress RAT printing
+    with open(os.devnull, "w", encoding="utf-8") as stdout, contextlib.redirect_stdout(stdout):
+        project, _ = getattr(RAT.examples, example)()
+
+    rat_inputs = RAT.inputs.make_input(project, RAT.Controls())
+
+    queue = Queue()
+    run(queue, rat_inputs, "calculate", False)
+
+    output = queue.get()
+
+    assert isinstance(output[0], RAT.rat_core.ProblemDefinition)
+    assert isinstance(output[1], RAT.outputs.Results)

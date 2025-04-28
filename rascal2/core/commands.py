@@ -127,9 +127,7 @@ class SaveCalculationOutputs(QtGui.QUndoCommand):
         self.results = results
         self.log = log
         self.problem = self.get_parameter_values(problem)
-        checks = RATapi.rat_core.Checks()
-        checks.qzshifts = []
-        self.old_problem = self.get_parameter_values(RATapi.inputs.make_problem(self.presenter.model.project, checks))
+        self.old_problem = self.get_parameter_values(RATapi.inputs.make_problem(self.presenter.model.project))
         self.old_results = copy.deepcopy(self.presenter.model.results)
         self.old_log = self.presenter.model.result_log
         self.setText("Save calculation results")
