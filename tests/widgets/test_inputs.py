@@ -34,7 +34,7 @@ def test_editor_type(field_info, expected_type, example_data):
     assert widget.get_data() == example_data
 
 
-@pytest.mark.parametrize(("value", "decimals"), [("10.", 0), ("1e-5", 6), ("0.01144661", 8)])
+@pytest.mark.parametrize(("value", "decimals"), [("10.", 2), ("1e-5", 6), ("0.01144661", 9)])
 def test_adaptive_spinbox(value, decimals):
     spinbox = AdaptiveDoubleSpinBox()
     spinbox.validate(value, 0)

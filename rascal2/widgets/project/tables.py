@@ -172,6 +172,7 @@ class ProjectFieldWidget(QtWidgets.QWidget):
         self.table.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding
         )
+        self.table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
 
         layout = QtWidgets.QVBoxLayout()
         topbar = QtWidgets.QHBoxLayout()

@@ -10,7 +10,7 @@ from RATapi.utils.custom_errors import custom_pydantic_validation_error
 from RATapi.utils.enums import Calculations, Geometries, LayerModels
 
 from rascal2.config import path_for
-from rascal2.widgets.project.lists import ContrastWidget
+from rascal2.widgets.project.lists import ContrastWidget, DataWidget
 from rascal2.widgets.project.tables import (
     BackgroundsFieldWidget,
     CustomFileWidget,
@@ -47,7 +47,7 @@ class ProjectWidget(QtWidgets.QWidget):
             "Parameters": ["parameters"],
             "Experimental Parameters": ["scalefactors", "bulk_in", "bulk_out"],
             "Layers": ["layers"],
-            "Data": [],
+            "Data": ["data"],
             "Backgrounds": ["background_parameters", "backgrounds"],
             "Resolutions": ["resolution_parameters", "resolutions"],
             "Domains": ["domain_ratios", "domain_contrasts"],
@@ -55,7 +55,7 @@ class ProjectWidget(QtWidgets.QWidget):
             "Contrasts": ["contrasts"],
         }
         # track which tabs are lists (for syncing)
-        self.list_tabs = ["Contrasts"]
+        self.list_tabs = ["Contrasts", "Data"]
 
         self.view_tabs = {}
         self.edit_tabs = {}
@@ -550,6 +550,8 @@ class ProjectTabWidget(QtWidgets.QWidget):
                 self.tables[field] = CustomFileWidget(field, self)
             elif field == "contrasts":
                 self.tables[field] = ContrastWidget(field, self)
+            elif field == "data":
+                self.tables[field] = DataWidget(field, self)
             else:
                 self.tables[field] = ProjectFieldWidget(field, self)
             layout.addWidget(self.tables[field])

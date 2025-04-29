@@ -1,5 +1,6 @@
 """Widgets for validated user inputs."""
 
+from collections.abc import Iterable
 from enum import Enum
 from math import floor, log10
 from pathlib import Path
@@ -220,7 +221,7 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
             return "inf"
         if value == -float("inf"):
             return "-inf"
-        return f"{round(value, 12):.4g}"
+        return f"{round(value, 12):.12g}"
 
     def valueFromText(self, text: str) -> float:
         """Set the underlying value of the spinbox from the text input."""
@@ -296,8 +297,11 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
                 return (QtGui.QValidator.State.Acceptable, input_text, pos)
             except ValueError:
                 return (QtGui.QValidator.State.Intermediate, input_text, pos)
-        elif "." in input_text and len(input_text.split(".")[-1]) != self.decimals():
-            self.setDecimals(len(input_text.split(".")[-1]))
+        elif "." in input_text:
+            # don't accept multiple decimal points
+            if len(parts := input_text.split(".")) > 2:
+                return (QtGui.QValidator.State.Intermediate, input_text, pos)
+            self.setDecimals(sum(map(len, parts)))
             return (QtGui.QValidator.State.Acceptable, input_text, pos)
         else:
             try:
@@ -305,6 +309,73 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
                 return (QtGui.QValidator.State.Acceptable, input_text, pos)
             except ValueError:
                 return (QtGui.QValidator.State.Intermediate, input_text, pos)
+
+
+class RangeWidget(QtWidgets.QWidget):
+    """A widget to choose a minimum and maximum float, e.g. for a range."""
+
+    data_changed = QtCore.pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.min_box = AdaptiveDoubleSpinBox()
+        self.max_box = AdaptiveDoubleSpinBox()
+
+        self.min_box.valueChanged.connect(lambda: self.data_changed.emit())
+        self.max_box.valueChanged.connect(lambda: self.data_changed.emit())
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(self.min_box)
+        layout.addWidget(self.max_box)
+
+        self.setLayout(layout)
+
+    def set_data(self, data: Iterable[float]):
+        """Set data for the widget.
+
+        Parameters
+        ----------
+        data : Iterable[float]
+            A two-item iterable giving a maximum and minimum value.
+
+        """
+        self.min_box.setValue(data[0])
+        self.max_box.setValue(data[1])
+
+    def get_data(self) -> list[float]:
+        """Get the data from the widget as a list of two values.
+
+        Returns
+        -------
+        list[float]
+            A two-item list of the minimum and maximum respectively.
+
+        """
+        return [self.min_box.value(), self.max_box.value()]
+
+    def set_outer_limit(self, limit: Iterable[float]):
+        """Set an outer limit for the range.
+
+        Parameters
+        ----------
+        data : Iterable[float]
+            A two-item iterable giving a maximum and minimum value that the range can be.
+
+        """
+        self.min_box.setMinimum(limit[0])
+        self.max_box.setMaximum(limit[1])
+
+    def set_inner_limit(self, limit: Iterable[float]):
+        """Set an inner limit for the range.
+
+        Parameters
+        ----------
+        data : Iterable[float]
+            A two-item iterable giving values that the range must be larger than.
+
+        """
+        self.min_box.setMaximum(limit[0])
+        self.max_box.setMinimum(limit[1])
 
 
 class MultiSelectComboBox(QtWidgets.QComboBox):
