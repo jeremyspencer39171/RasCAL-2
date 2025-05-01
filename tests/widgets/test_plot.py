@@ -4,7 +4,7 @@ import pytest
 import RATapi
 from PyQt6 import QtWidgets
 
-from rascal2.widgets.plot import ContourPlotWidget, PlotWidget, RefSLDWidget
+from rascal2.widgets.plot import AbstractPanelPlotWidget, ContourPlotWidget, PlotWidget, RefSLDWidget
 
 
 class MockWindowView(QtWidgets.QMainWindow):
@@ -42,6 +42,35 @@ def contour_widget():
     contour_widget.canvas = MagicMock()
 
     return contour_widget
+
+
+@pytest.fixture
+def mock_bayes_results():
+    """A mock of Bayes results with given fit parameter names."""
+
+    def _mock_bayes(fitnames):
+        bayes_results = MagicMock(spec=RATapi.outputs.BayesResults)
+        bayes_results.fitNames = fitnames
+
+        return bayes_results
+
+    return _mock_bayes
+
+
+class MockPanelPlot(AbstractPanelPlotWidget):
+    """A mock widget for panel plots."""
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.mock_plotter = MagicMock()
+
+    def draw_plot(self):
+        self.all_params = [
+            self.param_combobox.model().item(i).data() for i in range(self.param_combobox.model().rowCount())
+        ]
+        self.plot_params = self.param_combobox.selected_items()
+
+        self.mock_plotter()
 
 
 def test_plot_widget_update_plots(plot_widget):
@@ -131,10 +160,9 @@ def test_ref_sld_plot(mock_inputs, sld_widget):
 
 
 @patch("RATapi.plotting.RATapi.plotting.plot_contour")
-def test_contour_plot_fit_names(mock_plot_contour, contour_widget):
+def test_contour_plot_fit_names(mock_plot_contour, contour_widget, mock_bayes_results):
     """Test that the contour plot widget plots when fit names are selected."""
-    bayes_results = MagicMock(spec=RATapi.outputs.BayesResults)
-    bayes_results.fitNames = ["A", "B", "C"]
+    bayes_results = mock_bayes_results(["A", "B", "C"])
 
     contour_widget.plot(None, bayes_results)
     contour_widget.x_param_box.setCurrentText("A")
@@ -147,10 +175,9 @@ def test_contour_plot_fit_names(mock_plot_contour, contour_widget):
     mock_plot_contour.assert_called_once()
 
 
-def test_contour_plot_fitnames(contour_widget):
+def test_contour_plot_fitnames(contour_widget, mock_bayes_results):
     """Test that the names in each combobox are the results fitnames."""
-    bayes_results = MagicMock(spec=RATapi.outputs.BayesResults)
-    bayes_results.fitNames = ["A", "B", "C"]
+    bayes_results = mock_bayes_results(["A", "B", "C"])
 
     contour_widget.plot(None, bayes_results)
 
@@ -161,3 +188,55 @@ def test_contour_plot_fitnames(contour_widget):
     contour_widget.plot(None, bayes_results)
     for combo_box in [contour_widget.x_param_box, contour_widget.y_param_box]:
         assert [combo_box.itemText(i) for i in range(combo_box.count())] == ["", "A", "D"]
+
+
+def test_param_combobox_items(mock_bayes_results):
+    """Test that the parameter multi-select combobox items are the full set of fit parameters."""
+    bayes_results = mock_bayes_results(["A", "B", "C"])
+
+    widget = MockPanelPlot(view)
+    widget.plot(None, bayes_results)
+
+    assert widget.all_params == ["A", "B", "C"]
+
+    bayes_results.fitNames = ["A", "D"]
+
+    widget.plot(None, bayes_results)
+
+    assert widget.all_params == ["A", "D"]
+
+
+@pytest.mark.parametrize("init_select", ([], ["A", "C"], ["B"], ["A", "B", "C"]))
+def test_param_combobox_select(mock_bayes_results, init_select):
+    """Test that the select button correctly selects all parameters."""
+    bayes_results = mock_bayes_results(["A", "B", "C"])
+
+    widget = MockPanelPlot(view)
+    widget.plot(None, bayes_results)
+    widget.param_combobox.select_items(init_select)
+
+    assert widget.param_combobox.selected_items() == init_select
+
+    select_button = widget.plot_controls.layout().itemAt(1).layout().itemAt(0).widget()
+
+    select_button.click()
+
+    assert widget.param_combobox.selected_items() == ["A", "B", "C"]
+
+
+@pytest.mark.parametrize("init_select", ([], ["A", "C"], ["B"], ["A", "B", "C"]))
+def test_param_combobox_deselect(mock_bayes_results, init_select):
+    """Test that the select button correctly selects all parameters."""
+    bayes_results = mock_bayes_results(["A", "B", "C"])
+
+    widget = MockPanelPlot(view)
+    widget.plot(None, bayes_results)
+    widget.param_combobox.select_items(init_select)
+
+    assert widget.param_combobox.selected_items() == init_select
+
+    deselect_button = widget.plot_controls.layout().itemAt(1).layout().itemAt(1).widget()
+
+    deselect_button.click()
+
+    assert widget.param_combobox.selected_items() == []

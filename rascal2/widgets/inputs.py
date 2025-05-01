@@ -391,6 +391,8 @@ class MultiSelectComboBox(QtWidgets.QComboBox):
 
     """
 
+    selection_changed = QtCore.pyqtSignal()
+
     class Delegate(QtWidgets.QStyledItemDelegate):
         def sizeHint(self, option, index):
             size = super().sizeHint(option, index)
@@ -444,6 +446,7 @@ class MultiSelectComboBox(QtWidgets.QComboBox):
                 item.setCheckState(QtCore.Qt.CheckState.Unchecked)
             else:
                 item.setCheckState(QtCore.Qt.CheckState.Checked)
+            self.selection_changed.emit()
             return True
         return False
 
@@ -493,6 +496,11 @@ class MultiSelectComboBox(QtWidgets.QComboBox):
         for text, data in zip(texts, data_list):
             self.addItem(text, data)
 
+    def clear(self):
+        """Clear all items from the combobox."""
+        self.model().removeRows(0, self.model().rowCount())
+        self.selection_changed.emit()
+
     def selected_items(self) -> list:
         """Get the currently selected data.
 
@@ -522,6 +530,30 @@ class MultiSelectComboBox(QtWidgets.QComboBox):
                 QtCore.Qt.CheckState.Checked if i in indices else QtCore.Qt.CheckState.Unchecked
             )
         self.update_text()
+        self.selection_changed.emit()
+
+    def select_items(self, items: list) -> None:
+        """Set the selected items based on the provided names.
+
+        If a name is not found in the list of items, it will be ignored.
+
+        Parameters
+        ----------
+        items : list
+            A list of item data to be selected.
+
+        """
+        all_items = [self.model().item(i).data() for i in range(self.model().rowCount())]
+        indices = []
+        for item in items:
+            try:
+                index = all_items.index(item)
+            except ValueError:
+                continue
+            else:
+                indices.append(index)
+
+        self.select_indices(indices)
 
     def showEvent(self, event) -> None:
         """Show event handler.
