@@ -5,6 +5,7 @@ from typing import Any
 import RATapi as RAT
 
 from rascal2.core import commands
+from rascal2.core.enums import UnsavedReply
 from rascal2.core.runner import LogData, RATRunner
 from rascal2.core.settings import update_recent_projects
 
@@ -131,6 +132,21 @@ class MainWindowPresenter:
 
         self.model.save_project()
         update_recent_projects(self.model.save_path)
+        self.view.undo_stack.setClean()
+
+    def ask_to_save_project(self):
+        """Warn the user of unsaved changes."""
+        proceed = True
+
+        if not self.view.undo_stack.isClean():
+            message = f'The project has been modified.\n\nDo you want to save changes to "{self.model.project.name}"?'
+            reply = self.view.show_unsaved_dialog(message)
+            if reply == UnsavedReply.Save:
+                self.save_project()
+            elif reply == UnsavedReply.Cancel:
+                proceed = False
+
+        return proceed
 
     def interrupt_terminal(self):
         """Sends an interrupt signal to the RAT runner."""

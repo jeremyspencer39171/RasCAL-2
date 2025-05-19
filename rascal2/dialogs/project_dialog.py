@@ -219,9 +219,7 @@ class NewProjectDialog(StartupDialog):
             self.project_name_error.hide()
 
     def create_project(self) -> None:
-        """
-        Create project if inputs are valid.
-        """
+        """Create project if inputs are valid."""
         self.verify_name()
         if self.project_folder.text() == "":
             self.set_folder_error("Please specify a project folder.")

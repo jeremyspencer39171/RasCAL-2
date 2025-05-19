@@ -18,9 +18,17 @@ class MockUndoStack:
 
     def __init__(self):
         self.stack = []
+        self.clean = True
 
     def push(self, command):
+        self.clean = False
         command.redo()
+
+    def setClean(self):
+        self.clean = True
+
+    def isClean(self):
+        return self.clean
 
 
 class MockWindowView(QtWidgets.QMainWindow):
@@ -176,5 +184,26 @@ def test_save_project(recent_projects_mock, presenter):
 
     presenter.save_project(save_as=True)
     assert presenter.model.save_path == "new path/"
+    assert presenter.view.undo_stack.isClean()
     presenter.model.save_project.assert_called_once()
     recent_projects_mock.assert_called_with("new path/")
+
+
+@pytest.mark.parametrize(
+    ["reply", "undo_clean_state", "expected"],
+    [
+        ("Save", True, True),
+        ("Save", False, True),
+        ("Discard", True, True),
+        ("Discard", False, True),
+        ("Cancel", True, True),
+        ("Cancel", False, False),
+    ],
+)
+def test_ask_to_save_project(presenter, reply, undo_clean_state, expected):
+    """Test whether or not to proceed with an event based on the response to the unsaved changes warning."""
+    presenter.model.save_project = MagicMock()
+    presenter.view.show_unsaved_dialog = MagicMock(return_value=reply)
+
+    presenter.view.undo_stack.clean = undo_clean_state
+    assert presenter.ask_to_save_project() is expected

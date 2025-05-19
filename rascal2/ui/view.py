@@ -3,6 +3,7 @@ from pathlib import Path
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from rascal2.config import get_logger, path_for, setup_logging, setup_settings
+from rascal2.core.enums import UnsavedReply
 from rascal2.core.settings import MDIGeometries, Settings
 from rascal2.dialogs.project_dialog import PROJECT_FILES, LoadDialog, LoadR1Dialog, NewProjectDialog, StartupDialog
 from rascal2.dialogs.settings_dialog import SettingsDialog
@@ -53,6 +54,12 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.startup_dlg = StartUpWidget(self)
         self.setCentralWidget(self.startup_dlg)
 
+    def closeEvent(self, event):
+        if self.presenter.ask_to_save_project():
+            event.accept()
+        else:
+            event.ignore()
+
     def show_project_dialog(self, dialog: StartupDialog):
         """Shows a startup dialog of a given type.
 
@@ -64,9 +71,10 @@ class MainWindowView(QtWidgets.QMainWindow):
         if self.startup_dlg.isVisible():
             self.startup_dlg.hide()
 
-        project_dlg = dialog(self)
-        if project_dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted and self.centralWidget() is self.startup_dlg:
-            self.startup_dlg.show()
+        if self.presenter.ask_to_save_project():
+            project_dlg = dialog(self)
+            if project_dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted and self.centralWidget() is self.startup_dlg:
+                self.startup_dlg.show()
 
     def show_settings_dialog(self):
         """Shows the settings dialog to adjust program settings"""
@@ -386,3 +394,32 @@ class MainWindowView(QtWidgets.QMainWindow):
         )
 
         return reply == QtWidgets.QMessageBox.StandardButton.Ok
+
+    def show_unsaved_dialog(self, message: str) -> UnsavedReply:
+        """Warn the user of unsaved changes, and ask whether to save those changes.
+
+        Parameters
+        ----------
+        message : str
+            The message to inform the user of unsaved changes.
+
+        Returns
+        -------
+        rascal2.core.enums.UnsavedReply
+            The user's response to the warning.
+        """
+        buttons = (
+            QtWidgets.QMessageBox.StandardButton.Save
+            | QtWidgets.QMessageBox.StandardButton.Discard
+            | QtWidgets.QMessageBox.StandardButton.Cancel
+        )
+        reply = QtWidgets.QMessageBox.warning(
+            self, MAIN_WINDOW_TITLE, message, buttons, QtWidgets.QMessageBox.StandardButton.Cancel
+        )
+
+        if reply == QtWidgets.QMessageBox.StandardButton.Save:
+            return UnsavedReply.Save
+        elif reply == QtWidgets.QMessageBox.StandardButton.Discard:
+            return UnsavedReply.Discard
+        else:
+            return UnsavedReply.Cancel
