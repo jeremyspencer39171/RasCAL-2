@@ -352,17 +352,27 @@ def test_layer_model_set_absorption():
     assert model.classlist[1].SLD_imaginary == "BSI"
 
 
-@pytest.mark.parametrize("init_class", [RATapi.models.Layer, RATapi.models.AbsorptionLayer])
-def test_layer_widget_delegates(init_class):
+@pytest.mark.parametrize(
+    "init_list",
+    [
+        RATapi.ClassList(
+            [
+                RATapi.models.Layer(thickness="AT", SLD="AS", roughness="AR"),
+                RATapi.models.Layer(thickness="BT", SLD="BS", roughness="BR"),
+                RATapi.models.Layer(thickness="CT", SLD="CS", roughness="CR"),
+            ]
+        ),
+        RATapi.ClassList(
+            [
+                RATapi.models.AbsorptionLayer(thickness="AT", SLD_real="AS", SLD_imaginary="ASI", roughness="AR"),
+                RATapi.models.AbsorptionLayer(thickness="BT", SLD_real="BS", SLD_imaginary="BSI", roughness="BR"),
+                RATapi.models.AbsorptionLayer(thickness="CT", SLD_real="CS", SLD_imaginary="CSI", roughness="CR"),
+            ]
+        ),
+    ],
+)
+def test_layer_widget_delegates(init_list):
     """Test that the LayerFieldWidget has the expected delegates."""
-    init_list = RATapi.ClassList(
-        [
-            init_class(thickness="AT", SLD="AS", roughness="AR"),
-            init_class(thickness="BT", SLD="BS", roughness="BR"),
-            init_class(thickness="CT", SLD="CS", roughness="CR"),
-        ]
-    )
-
     expected_delegates = {
         "name": delegates.ValidatedInputDelegate,
         "thickness": delegates.ProjectFieldDelegate,

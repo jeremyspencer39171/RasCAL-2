@@ -2,11 +2,40 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+import numpy as np
 import pytest
-from RATapi import Controls, Project
+from RATapi import Controls, Project, Results
+from RATapi.outputs import CalculationResults, ContrastParams
 from RATapi.utils.enums import Calculations
 
 from rascal2.ui.model import MainWindowModel
+from tests.utils import check_results_equal
+
+
+@pytest.fixture
+def empty_results():
+    empty_results = Results(
+        reflectivity=[],
+        simulation=[],
+        shiftedData=[],
+        backgrounds=[],
+        resolutions=[],
+        sldProfiles=[],
+        layers=[],
+        resampledLayers=[],
+        calculationResults=CalculationResults(chiValues=np.array([]), sumChi=0.0),
+        contrastParams=ContrastParams(
+            scalefactors=np.array([]),
+            bulkIn=np.array([]),
+            bulkOut=np.array([]),
+            subRoughs=np.array([]),
+            resample=np.array([]),
+        ),
+        fitParams=np.array([]),
+        fitNames=[],
+    )
+
+    return empty_results
 
 
 def test_create_project():
@@ -25,14 +54,16 @@ def test_create_project():
     assert model.save_path == "C:/test"
 
 
-def test_save_project():
+def test_save_project(empty_results):
     model = MainWindowModel()
     model.project = Project(calculation="domains", name="test project")
     model.controls = Controls(procedure="dream", resampleMinAngle=0.5)
+    model.results = empty_results
     with TemporaryDirectory() as tmpdir:
         model.save_path = tmpdir
         model.save_project()
 
+        results = Path(tmpdir, "results.json").read_text()
         controls = Path(tmpdir, "controls.json").read_text()
         project = Path(tmpdir, "project.json").read_text()
 
@@ -40,14 +71,17 @@ def test_save_project():
     assert '"procedure":"dream"' in controls
     assert '"name": "test project"' in project
     assert '"calculation": "domains' in project
+    assert '"reflectivity": []' in results
+    assert '"fitParams": []' in results
 
 
-def test_load_project():
+def test_load_project(empty_results):
     """The load function should load the correct controls object from JSON."""
     model = MainWindowModel()
     project = Project(name="test project", calculation="domains")
 
     with TemporaryDirectory() as tmpdir:
+        empty_results.save(Path(tmpdir, "results"))
         Controls(procedure="dream", resampleMinAngle=0.5).save(tmpdir, "controls")
         project.save(Path(tmpdir, "project"))
         model.load_project(tmpdir)
@@ -55,6 +89,7 @@ def test_load_project():
     assert model.controls == Controls(procedure="dream", resampleMinAngle=0.5)
     assert model.project.calculation == Calculations.Domains
     assert model.project.name == "test project"
+    check_results_equal(model.results, empty_results)
 
 
 @patch("RATapi.utils.convert.r1_to_project")

@@ -130,6 +130,12 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.undo_view_action.setEnabled(False)
         self.disabled_elements.append(self.undo_view_action)
 
+        self.export_results_action = QtGui.QAction("Export Results", self)
+        self.export_results_action.setStatusTip("Export Results to a specified file.")
+        self.export_results_action.triggered.connect(lambda: self.presenter.export_results())
+        self.export_results_action.setEnabled(False)
+        self.disabled_elements.append(self.export_results_action)
+
         self.export_plots_action = QtGui.QAction("Export", self)
         self.export_plots_action.setStatusTip("Export Plots")
         self.export_plots_action.setIcon(QtGui.QIcon(path_for("export-plots.png")))
@@ -142,12 +148,6 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.settings_action.triggered.connect(self.show_settings_dialog)
         self.settings_action.setEnabled(False)
         self.disabled_elements.append(self.settings_action)
-
-        self.export_plots_action = QtGui.QAction("Export", self)
-        self.export_plots_action.setStatusTip("Export Plots")
-        self.export_plots_action.setIcon(QtGui.QIcon(path_for("export-plots.png")))
-        self.export_plots_action.setEnabled(False)
-        self.disabled_elements.append(self.export_plots_action)
 
         self.open_help_action = QtGui.QAction("&Help", self)
         self.open_help_action.setStatusTip("Open Documentation")
@@ -197,6 +197,8 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.save_project_action)
         self.file_menu.addAction(self.save_as_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.export_results_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.settings_action)
         self.file_menu.addSeparator()
@@ -352,7 +354,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.redo_action.setEnabled(enabled)
         self.project_widget.set_editing_enabled(enabled)
 
-    def get_project_folder(self) -> str:
+    def get_project_folder(self) -> str | None:
         """Get a specified folder from the user.
 
         Returns
@@ -372,6 +374,29 @@ class MainWindowView(QtWidgets.QMainWindow):
                     return project_folder  # must manually return else all the rejected overwrites will save at once!!
 
             return project_folder
+
+        return None
+
+    def get_save_file(self, caption, directory, file_filter) -> str:
+        """Get a specified file to save to from the user.
+
+        Parameters
+        ----------
+        caption : str
+            The caption used for the save dialog.
+        directory : str
+            The working directory of the save dialog.
+        file_filter : str
+            The file types selected in the dialog.
+
+        Returns
+        -------
+        str
+            The chosen file.
+        """
+        save_file, _ = QtWidgets.QFileDialog.getSaveFileName(self, caption, directory, QtCore.QObject.tr(file_filter))
+
+        return save_file
 
     def show_confirm_dialog(self, title: str, message: str) -> bool:
         """Ask the user to confirm an action.

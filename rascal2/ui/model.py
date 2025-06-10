@@ -77,6 +77,8 @@ class MainWindowModel(QtCore.QObject):
 
         self.controls.save(self.save_path, "controls.json")
         self.project.save(Path(self.save_path, "project.json"))
+        if self.results:
+            self.results.save(Path(self.save_path, "results.json"))
 
     def load_project(self, load_path: str):
         """Load a project from a project folder.
@@ -92,6 +94,18 @@ class MainWindowModel(QtCore.QObject):
             If the project files are not in a valid format.
 
         """
+        results_file = Path(load_path, "results.json")
+        try:
+            results = RAT.Results.load(results_file)
+        except FileNotFoundError:
+            # If results are not included, simply move on.
+            results = None
+        except ValueError as err:
+            raise ValueError(
+                "The results.json file for this project is not valid.\n"
+                "It may contain invalid parameter values or be invalid JSON."
+            ) from err
+
         controls_file = Path(load_path, "controls.json")
         try:
             controls = RAT.Controls.load(controls_file)
@@ -113,6 +127,7 @@ class MainWindowModel(QtCore.QObject):
         except (KeyError, ValueError) as err:
             raise ValueError("The project.json file for this project is not valid.") from err
 
+        self.results = results
         self.controls = controls
         self.project = project
         self.save_path = load_path

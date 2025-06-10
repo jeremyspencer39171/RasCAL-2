@@ -284,7 +284,7 @@ class RefSLDWidget(AbstractPlotWidget):
 
         Parameters
         ----------
-        problem : RATapi.Project
+        project : RATapi.Project
             The project
         results : Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]
             The calculation results.
