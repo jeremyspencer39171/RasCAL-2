@@ -3,11 +3,10 @@
 from typing import Any, Callable
 
 from pydantic import ValidationError
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 from RATapi.controls import common_fields, fields
 from RATapi.utils.enums import Procedures
 
-from rascal2.config import path_for
 from rascal2.widgets.inputs import get_validated_input
 
 
@@ -24,26 +23,20 @@ class ControlsWidget(QtWidgets.QWidget):
         self.fit_settings_layout = QtWidgets.QStackedLayout()
         self.fit_settings = QtWidgets.QWidget()
         self.fit_settings.setLayout(self.fit_settings_layout)
-        self.fit_settings.setBackgroundRole(QtGui.QPalette.ColorRole.Base)
 
         # create run and stop buttons
-        self.run_button = QtWidgets.QPushButton(icon=QtGui.QIcon(path_for("play.png")), text="Run")
+        self.run_button = QtWidgets.QPushButton("Run", objectName="PlayButton")
         self.run_button.toggled.connect(self.toggle_run_button)
-        self.run_button.setStyleSheet("background-color: green;")
         self.run_button.setCheckable(True)
 
-        self.stop_button = QtWidgets.QPushButton(icon=QtGui.QIcon(path_for("stop.png")), text="Stop")
+        self.stop_button = QtWidgets.QPushButton("Stop", objectName="StopButton")
         self.stop_button.pressed.connect(self.presenter.interrupt_terminal)
-        self.stop_button.setStyleSheet("background-color: red;")
         self.stop_button.setEnabled(False)
 
         # validation label for if user tries to run with invalid controls
-        self.validation_label = QtWidgets.QLabel("")
-        self.validation_label.setStyleSheet("color : red")
-        self.validation_label.font().setPointSize(10)
+        self.validation_label = QtWidgets.QLabel(objectName="ErrorLabel")
         self.validation_label.setWordWrap(True)
         self.validation_label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.validation_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
 
         # create box containing chi-squared value
         chi_layout = QtWidgets.QHBoxLayout()
@@ -51,7 +44,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.chi_squared.setReadOnly(True)
         chi_layout.addWidget(QtWidgets.QLabel("Current chi-squared:"))
         chi_layout.addWidget(self.chi_squared)
-        chi_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        chi_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
 
         # create dropdown to choose procedure
         procedure_layout = QtWidgets.QHBoxLayout()
@@ -59,16 +52,17 @@ class ControlsWidget(QtWidgets.QWidget):
         self.procedure_dropdown = QtWidgets.QComboBox()
         self.procedure_dropdown.addItems([p.value for p in Procedures])
         self.procedure_dropdown.currentIndexChanged.connect(self.set_procedure)
-        procedure_layout.addWidget(self.procedure_dropdown)
+        procedure_layout.addWidget(self.procedure_dropdown, 2)
+        procedure_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
 
         # create button to hide/show fit settings
-        self.fit_settings_button = QtWidgets.QPushButton()
-        self.fit_settings_button.setCheckable(True)
+        self.fit_settings_button = QtWidgets.QPushButton(objectName="FitSettingsButton")
         self.fit_settings_button.toggled.connect(self.toggle_fit_settings)
-        self.fit_settings_button.setChecked(True)
+        self.fit_settings_button.setCheckable(True)
 
         # compose buttons & widget
         buttons_layout = QtWidgets.QVBoxLayout()
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
         buttons_layout.addWidget(self.run_button)
         buttons_layout.addWidget(self.stop_button)
         buttons_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
@@ -81,10 +75,12 @@ class ControlsWidget(QtWidgets.QWidget):
         procedure_box.addWidget(self.validation_label, alignment=QtCore.Qt.AlignmentFlag.AlignVCenter)
 
         widget_layout = QtWidgets.QHBoxLayout()
-        widget_layout.addLayout(procedure_box)
-        widget_layout.addWidget(self.fit_settings)
-
+        widget_layout.addStretch(1)
+        widget_layout.addLayout(procedure_box, 4)
+        widget_layout.addWidget(self.fit_settings, 4)
+        widget_layout.addStretch(1)
         self.setLayout(widget_layout)
+        self.fit_settings_button.setChecked(True)
 
     def setup_controls(self):
         """Setup the parts of the widget which depend on the Controls object."""
@@ -126,12 +122,8 @@ class ControlsWidget(QtWidgets.QWidget):
             Whether the button is toggled on or off.
 
         """
-        if toggled:
-            self.fit_settings.show()
-            self.fit_settings_button.setText("Hide fit settings")
-        else:
-            self.fit_settings.hide()
-            self.fit_settings_button.setText("Show fit settings")
+        self.fit_settings.setVisible(toggled)
+        self.fit_settings_button.setText("Hide fit settings" if toggled else "Show fit settings")
 
     def toggle_run_button(self, toggled: bool):
         """Toggle whether the optimisation is currently running.
@@ -232,7 +224,7 @@ class FitSettingsWidget(QtWidgets.QWidget):
             settings_grid.addWidget(self.val_labels[setting], 2 * i + 1, 1)
 
         settings_grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        fit_settings = QtWidgets.QWidget(self)
+        fit_settings = QtWidgets.QWidget(self, objectName="FitSettings")
         fit_settings.setLayout(settings_grid)
 
         scroll_area = QtWidgets.QScrollArea(self)

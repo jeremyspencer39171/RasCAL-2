@@ -176,11 +176,13 @@ class ProjectFieldWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout()
         topbar = QtWidgets.QHBoxLayout()
-        topbar.addWidget(QtWidgets.QLabel(header))
-        # change to icon: remember to mention that plus.png in the icons is wonky
-        self.add_button = QtWidgets.QPushButton(f"+ Add new {header[:-1] if header[-1] == 's' else header}")
+        topbar.addWidget(QtWidgets.QLabel(header, objectName="ProjectFieldWidgetLabel"))
+        self.add_button = QtWidgets.QPushButton(
+            f"Add new {header[:-1] if header[-1] == 's' else header}", objectName="ProjectFieldWidgetButton"
+        )
         self.add_button.setHidden(True)
         self.add_button.pressed.connect(self.append_item)
+        topbar.addStretch(1)
         topbar.addWidget(self.add_button)
 
         layout.addLayout(topbar)
@@ -242,7 +244,7 @@ class ProjectFieldWidget(QtWidgets.QWidget):
 
     def make_delete_button(self, index):
         """Make a button that deletes index `index` from the list."""
-        button = QtWidgets.QPushButton(icon=QtGui.QIcon(path_for("delete.png")))
+        button = QtWidgets.QPushButton(icon=QtGui.QIcon(path_for("delete-dark.png")))
         button.resize(button.sizeHint().width(), button.sizeHint().width())
         button.pressed.connect(lambda: self.delete_item(index))
 

@@ -149,10 +149,15 @@ class AbstractPlotWidget(QtWidgets.QWidget):
         # plot_toolbar contains always-visible toolbar
         plot_toolbar = QtWidgets.QVBoxLayout()
         plot_toolbar.addWidget(self.toggle_button)
-        for toolbar_widget in self.make_toolbar_widgets():
-            plot_toolbar.addWidget(toolbar_widget)
-
-        plot_toolbar.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignHCenter)
+        slider = self.make_toolbar_widget()
+        if slider is None:
+            plot_toolbar.addStretch(1)
+        else:
+            sub_layout = QtWidgets.QHBoxLayout()
+            sub_layout.addStretch(1)
+            sub_layout.addWidget(slider)
+            sub_layout.addStretch(1)
+            plot_toolbar.addLayout(sub_layout)
 
         sidebar = QtWidgets.QHBoxLayout()
         sidebar.addWidget(self.plot_controls)
@@ -160,6 +165,9 @@ class AbstractPlotWidget(QtWidgets.QWidget):
 
         self.figure = self.make_figure()
         self.canvas = FigureCanvas(self.figure)
+        self.figure.set_facecolor("none")
+        self.canvas.setStyleSheet("background-color: transparent;")
+
         self.canvas.setParent(self)
         self.setMinimumHeight(300)
 
@@ -187,16 +195,8 @@ class AbstractPlotWidget(QtWidgets.QWidget):
         """
         raise NotImplementedError
 
-    def make_toolbar_widgets(self) -> list[QtWidgets.QWidget]:
-        """Make widgets for the toolbar.
-
-        Returns
-        -------
-        list[QtWidgets.QWidget]
-            A list of toolbar widgets.
-
-        """
-        return []
+    def make_toolbar_widget(self):
+        """Make widgets for the toolbar."""
 
     def make_figure(self) -> Figure:
         """Make the figure to plot onto.
@@ -207,8 +207,7 @@ class AbstractPlotWidget(QtWidgets.QWidget):
             The figure to plot onto.
 
         """
-        fig = Figure()
-        return fig
+        return Figure()
 
     @abstractmethod
     def plot(self, project: RATapi.Project, results: Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]):
@@ -268,10 +267,10 @@ class RefSLDWidget(AbstractPlotWidget):
 
         return layout
 
-    def make_toolbar_widgets(self) -> list[QtWidgets.QWidget]:
+    def make_toolbar_widget(self):
         self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Vertical)
 
-        return [self.slider]
+        return self.slider
 
     def make_figure(self) -> Figure:
         figure = Figure()

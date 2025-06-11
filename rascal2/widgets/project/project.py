@@ -96,15 +96,14 @@ class ProjectWidget(QtWidgets.QWidget):
         settings_layout = QtWidgets.QHBoxLayout()
         settings_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
 
-        absorption_label = QtWidgets.QLabel("Absorption:", self, objectName="boldlabel")
+        absorption_label = QtWidgets.QLabel("Absorption:", self, objectName="BoldLabel")
         self.absorption_checkbox = QtWidgets.QCheckBox()
-        # this is how you make a checkbox read-only but still checkable from inside code...
-        self.absorption_checkbox.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.absorption_checkbox.setDisabled(True)
 
         settings_layout.addWidget(absorption_label)
         settings_layout.addWidget(self.absorption_checkbox)
 
-        self.calculation_label = QtWidgets.QLabel("Calculation:", self, objectName="boldlabel")
+        self.calculation_label = QtWidgets.QLabel("Calculation:", self, objectName="BoldLabel")
 
         self.calculation_type = QtWidgets.QLineEdit(self)
         self.calculation_type.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -113,7 +112,7 @@ class ProjectWidget(QtWidgets.QWidget):
         settings_layout.addWidget(self.calculation_label)
         settings_layout.addWidget(self.calculation_type)
 
-        self.model_type_label = QtWidgets.QLabel("Model Type:", self, objectName="boldlabel")
+        self.model_type_label = QtWidgets.QLabel("Model Type:", self, objectName="BoldLabel")
 
         self.model_type = QtWidgets.QLineEdit(self)
         self.model_type.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -122,7 +121,7 @@ class ProjectWidget(QtWidgets.QWidget):
         settings_layout.addWidget(self.model_type_label)
         settings_layout.addWidget(self.model_type)
 
-        self.geometry_label = QtWidgets.QLabel("Geometry:", self, objectName="boldlabel")
+        self.geometry_label = QtWidgets.QLabel("Geometry:", self, objectName="BoldLabel")
 
         self.geometry_type = QtWidgets.QLineEdit(self)
         self.geometry_type.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -168,13 +167,13 @@ class ProjectWidget(QtWidgets.QWidget):
         settings_layout = QtWidgets.QHBoxLayout()
         settings_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
 
-        absorption_label = QtWidgets.QLabel("Absorption:", self, objectName="boldlabel")
+        absorption_label = QtWidgets.QLabel("Absorption:", self, objectName="BoldLabel")
         self.edit_absorption_checkbox = QtWidgets.QCheckBox()
 
         settings_layout.addWidget(absorption_label)
         settings_layout.addWidget(self.edit_absorption_checkbox)
 
-        self.edit_calculation_label = QtWidgets.QLabel("Calculation:", self, objectName="boldlabel")
+        self.edit_calculation_label = QtWidgets.QLabel("Calculation:", self, objectName="BoldLabel")
 
         self.calculation_combobox = QtWidgets.QComboBox(self)
         self.calculation_combobox.setSizePolicy(
@@ -185,7 +184,7 @@ class ProjectWidget(QtWidgets.QWidget):
         settings_layout.addWidget(self.edit_calculation_label)
         settings_layout.addWidget(self.calculation_combobox)
 
-        self.edit_model_type_label = QtWidgets.QLabel("Model Type:", self, objectName="boldlabel")
+        self.edit_model_type_label = QtWidgets.QLabel("Model Type:", self, objectName="BoldLabel")
 
         self.model_combobox = QtWidgets.QComboBox(self)
         self.model_combobox.setSizePolicy(
@@ -196,7 +195,7 @@ class ProjectWidget(QtWidgets.QWidget):
         settings_layout.addWidget(self.edit_model_type_label)
         settings_layout.addWidget(self.model_combobox)
 
-        self.edit_geometry_label = QtWidgets.QLabel("Geometry:", self, objectName="boldlabel")
+        self.edit_geometry_label = QtWidgets.QLabel("Geometry:", self, objectName="BoldLabel")
 
         self.geometry_combobox = QtWidgets.QComboBox(self)
         self.geometry_combobox.setSizePolicy(
@@ -557,14 +556,16 @@ class ProjectTabWidget(QtWidgets.QWidget):
             layout.addWidget(self.tables[field])
 
         scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         # one widget must be given, not a layout,
         # or scrolling won't work properly!
-        tab_widget = QtWidgets.QFrame()
+        tab_widget = QtWidgets.QWidget()
         tab_widget.setLayout(layout)
         scroll_area.setWidget(tab_widget)
         scroll_area.setWidgetResizable(True)
 
         widget_layout = QtWidgets.QVBoxLayout()
+        widget_layout.setContentsMargins(0, 0, 0, 0)
         widget_layout.addWidget(scroll_area)
 
         self.setLayout(widget_layout)

@@ -68,11 +68,9 @@ class BaseInputWidget(QtWidgets.QWidget):
         self.edited_signal: QtCore.pyqtSignal = getattr(self.editor, self.edit_signal)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.editor)
         layout.setContentsMargins(0, 0, 0, 0)
-
+        layout.addWidget(self.editor)
         self.setLayout(layout)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
 
     def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
         """Create the relevant editor for the field information.

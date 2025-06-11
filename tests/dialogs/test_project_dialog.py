@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PyQt6 import QtWidgets
 
-from rascal2.dialogs.project_dialog import PROJECT_FILES, LoadDialog, LoadR1Dialog, NewProjectDialog, StartupDialog
+from rascal2.dialogs.startup_dialog import PROJECT_FILES, LoadDialog, LoadR1Dialog, NewProjectDialog, StartupDialog
 
 
 class MockParentWindow(QtWidgets.QMainWindow):
@@ -23,7 +23,7 @@ view = MockParentWindow()
 @pytest.mark.parametrize(
     ("dialog", "num_widgets"),
     (
-        [NewProjectDialog, 2],
+        [NewProjectDialog, 1],
         [LoadDialog, 1],
         [LoadR1Dialog, 1],
     ),
@@ -32,7 +32,7 @@ def test_project_dialog_initial_state(dialog, num_widgets):
     """
     Tests that each dialog has expected initial state.
     """
-    with patch("rascal2.dialogs.project_dialog.update_recent_projects", return_value=[]):
+    with patch("rascal2.dialogs.startup_dialog.update_recent_projects", return_value=[]):
         project_dialog = dialog(view)
 
     assert project_dialog.isModal()
@@ -42,11 +42,11 @@ def test_project_dialog_initial_state(dialog, num_widgets):
     buttons = project_dialog.layout().itemAt(num_widgets + 1).layout()
     assert isinstance(buttons, QtWidgets.QHBoxLayout)
     assert buttons.count() == 2
-    assert buttons.itemAt(1).widget().text() == " Cancel"
+    assert buttons.itemAt(1).widget().text() == "Cancel"
     if isinstance(project_dialog, NewProjectDialog):
-        assert buttons.itemAt(0).widget().text() == " Create"
+        assert buttons.itemAt(0).widget().text() == "Create"
     else:
-        assert buttons.itemAt(0).widget().text() == " Load"
+        assert buttons.itemAt(0).widget().text() == "Load"
 
     if project_dialog == NewProjectDialog:
         assert project_dialog.project_name.placeholderText() == "Enter project name"
@@ -74,7 +74,7 @@ def test_create_button(name, name_valid, folder, folder_valid, other_folder_erro
     project_dialog = NewProjectDialog(view)
     mock_create = view.presenter.create_project = MagicMock()
 
-    create_button = project_dialog.layout().itemAt(3).layout().itemAt(0).widget()
+    create_button = project_dialog.layout().itemAt(2).layout().itemAt(0).widget()
 
     project_dialog.project_name.setText(name)
     project_dialog.project_folder.setText(folder)
@@ -97,7 +97,7 @@ def test_load_button(widget, folder, folder_valid, other_folder_error):
     Tests project loading on the LoadDialog and LoadR1Dialog class.
     """
 
-    with patch("rascal2.dialogs.project_dialog.update_recent_projects", return_value=[]):
+    with patch("rascal2.dialogs.startup_dialog.update_recent_projects", return_value=[]):
         project_dialog = widget(view)
     if widget == LoadDialog:
         mock_load = view.presenter.load_project = MagicMock()
@@ -170,16 +170,16 @@ def test_folder_selector():
 def test_recent_projects(recent):
     """Tests that the Recent Projects list is as expected."""
 
-    with patch("rascal2.dialogs.project_dialog.update_recent_projects", return_value=recent):
+    with patch("rascal2.dialogs.startup_dialog.update_recent_projects", return_value=recent):
         project_dialog = LoadDialog(view)
 
-    assert project_dialog.layout().count() == (4 if recent else 3)
+    assert project_dialog.layout().count() == 3
 
     if recent:
-        recent_projects = project_dialog.layout().itemAt(1).layout()
-        assert recent_projects.count() == min(len(recent) + 1, 4)
+        recent_projects = project_dialog.layout().itemAt(0).layout().itemAt(5).layout()
+        assert recent_projects.count() == min(len(recent), 3)
 
-        for i, label in enumerate(["Recent projects:"] + recent[0:3]):
+        for i, label in enumerate(recent[0:3]):
             assert label in recent_projects.itemAt(i).widget().text()
 
 

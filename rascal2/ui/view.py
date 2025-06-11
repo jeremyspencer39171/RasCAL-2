@@ -5,8 +5,8 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from rascal2.config import get_logger, path_for, setup_logging, setup_settings
 from rascal2.core.enums import UnsavedReply
 from rascal2.core.settings import MDIGeometries, Settings
-from rascal2.dialogs.project_dialog import PROJECT_FILES, LoadDialog, LoadR1Dialog, NewProjectDialog, StartupDialog
 from rascal2.dialogs.settings_dialog import SettingsDialog
+from rascal2.dialogs.startup_dialog import PROJECT_FILES, LoadDialog, LoadR1Dialog, NewProjectDialog, StartupDialog
 from rascal2.widgets import ControlsWidget, PlotWidget, TerminalWidget
 from rascal2.widgets.project import ProjectWidget
 from rascal2.widgets.startup import StartUpWidget
@@ -46,7 +46,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.create_toolbar()
         self.create_status_bar()
 
-        self.setMinimumSize(1024, 900)
+        self.setMinimumSize(1024, 800)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
 
         self.settings = Settings()
@@ -113,6 +113,7 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.save_as_action.setIcon(QtGui.QIcon(path_for("save-project.png")))
         self.save_as_action.triggered.connect(lambda: self.presenter.save_project(save_as=True))
         self.save_as_action.setShortcut(QtGui.QKeySequence.StandardKey.SaveAs)
+        self.disabled_elements.append(self.save_project_action)
 
         self.undo_action = self.undo_stack.createUndoAction(self, "&Undo")
         self.undo_action.setStatusTip("Undo the last action")

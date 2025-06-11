@@ -124,26 +124,29 @@ class AbstractProjectListWidget(QtWidgets.QWidget):
         self.list = QtWidgets.QListView(parent)
         self.list.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
 
-        buttons = QtWidgets.QHBoxLayout()
-
-        self.add_button = QtWidgets.QPushButton("+")
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.addStretch(1)
+        self.add_button = QtWidgets.QToolButton(icon=QtGui.QIcon(path_for("create-dark.png")))
         self.add_button.setHidden(True)
         self.add_button.pressed.connect(self.append_item)
-        buttons.addWidget(self.add_button)
+        button_layout.addWidget(self.add_button)
 
-        self.delete_button = QtWidgets.QPushButton(icon=QtGui.QIcon(path_for("delete.png")))
+        self.delete_button = QtWidgets.QToolButton(icon=QtGui.QIcon(path_for("delete-dark.png")))
         self.delete_button.setHidden(True)
         self.delete_button.pressed.connect(self.delete_item)
-        buttons.addWidget(self.delete_button)
+        button_layout.addWidget(self.delete_button)
 
+        item_list.addLayout(button_layout)
         item_list.addWidget(self.list)
-        item_list.addLayout(buttons)
 
-        layout.addLayout(item_list)
+        layout.addLayout(item_list, 1)
 
         self.item_view = QtWidgets.QScrollArea(parent)
+        self.item_view.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.item_view.setWidgetResizable(True)
-        layout.addWidget(self.item_view)
+        layout.addSpacing(10)
+        layout.addWidget(self.item_view, 3)
 
         self.setLayout(layout)
 
@@ -307,7 +310,7 @@ class StandardLayerModelWidget(QtWidgets.QWidget):
             self.model.index(0, 0), QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
         )
 
-        self.add_button = QtWidgets.QPushButton("+")
+        self.add_button = QtWidgets.QPushButton("Add Model", icon=QtGui.QIcon(path_for("create-dark.png")))
         self.add_button.setToolTip("Add a layer after the currently selected layer (Shift+Enter)")
         if self.model.rowCount() == 2:
             self.add_button.setEnabled(False)
@@ -315,7 +318,7 @@ class StandardLayerModelWidget(QtWidgets.QWidget):
         self.add_button.pressed.connect(self.append_item)
         add_shortcut.activated.connect(self.append_item)
 
-        delete_button = QtWidgets.QPushButton(icon=QtGui.QIcon(path_for("delete.png")))
+        delete_button = QtWidgets.QPushButton("Delete Model", icon=QtGui.QIcon(path_for("delete-dark.png")))
         delete_button.setToolTip("Delete the currently selected layer (Del)")
         delete_shortcut = QtGui.QShortcut(QtGui.QKeySequence.StandardKey.Delete, self)
         delete_button.pressed.connect(self.delete_item)
@@ -330,13 +333,17 @@ class StandardLayerModelWidget(QtWidgets.QWidget):
         move_down_shortcut.activated.connect(lambda: self.move_item(1))
 
         buttons = QtWidgets.QHBoxLayout()
+        buttons.setContentsMargins(0, 0, 0, 0)
         buttons.addWidget(self.add_button)
         buttons.addWidget(delete_button)
+        buttons.setSpacing(10)
+        buttons.addStretch(1)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.layer_list)
         layout.addLayout(buttons)
-        layout.setContentsMargins(0, 0, 0, 0)
 
         self.setLayout(layout)
 
@@ -516,11 +523,12 @@ class ContrastWidget(AbstractProjectListWidget):
         grid.addWidget(resampling_checkbox, 4, 1)
         grid.addWidget(QtWidgets.QLabel("Bulk in:"), 5, 0)
         grid.addWidget(data_widget("bulk_in"), 5, 1, 1, -1)
-        grid.addWidget(QtWidgets.QLabel("Model:"), 6, 0)
+        grid.addWidget(QtWidgets.QLabel("Model:"), 6, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         grid.addWidget(data_widget("model"), 6, 1, 1, -1)
         grid.addWidget(QtWidgets.QLabel("Bulk out:"), 7, 0)
         grid.addWidget(data_widget("bulk_out"), 7, 1, 1, -1)
-
+        grid.setSpacing(20)
+        grid.setRowStretch(8, 1)
         widget = QtWidgets.QWidget(self)
         widget.setLayout(grid)
 
@@ -642,6 +650,8 @@ class ArrayTableModel(QtCore.QAbstractTableModel):
     def data(self, index, role):
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             return str(self.data[index.row()][index.column()])
+        elif role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
+            return QtCore.Qt.AlignmentFlag.AlignCenter
 
     def rowCount(self, index=None):
         return len(self.data)
@@ -720,6 +730,18 @@ class DataWidget(AbstractProjectListWidget):
 
         return widget
 
+    def create_data_table(self, current_data):
+        model = ArrayTableModel(current_data)
+        widget = QtWidgets.QTableView()
+        widget.setMinimumSize(450, 150)
+        widget.setModel(model)
+
+        col_width = widget.columnWidth(0)
+        # 1.05 is a fudge value to slightly increase width
+        table_width = widget.verticalHeader().width() + int(model.columnCount() * col_width * 1.05)
+        widget.setFixedWidth(table_width)
+        return widget
+
     def create_view(self, i):
         def data_viewer(field):
             item = self.model.get_item(i)
@@ -730,10 +752,7 @@ class DataWidget(AbstractProjectListWidget):
                     widget.setReadOnly(True)
                     return widget
                 case "data":
-                    model = ArrayTableModel(current_data)
-                    widget = QtWidgets.QTableView()
-                    widget.setModel(model)
-                    return widget
+                    return self.create_data_table(current_data)
                 case _:
                     widget = RangeWidget()
                     widget.set_data(current_data)
@@ -772,10 +791,7 @@ class DataWidget(AbstractProjectListWidget):
                         widget.textChanged.connect(lambda text: self.set_name_data(i, text))
                     return widget
                 case "data":
-                    model = ArrayTableModel(current_data)
-                    widget = QtWidgets.QTableView()
-                    widget.setModel(model)
-                    return widget
+                    return self.create_data_table(current_data)
                 case _:
                     widget = RangeWidget()
                     widget.set_data(current_data)

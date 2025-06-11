@@ -9,7 +9,6 @@ from PyQt6 import QtCore, QtWidgets
 from RATapi.utils.enums import Languages
 
 import rascal2.widgets.delegates as delegates
-import rascal2.widgets.inputs as inputs
 from rascal2.widgets.project.tables import (
     BackgroundsModel,
     ClassListTableModel,
@@ -176,11 +175,11 @@ def test_project_field_update_model(classlist):
     assert widget.model.classlist == classlist
     assert isinstance(
         widget.table.itemDelegateForColumn(1).createEditor(None, None, widget.model.index(1, 1)),
-        inputs.BaseInputWidget,
+        QtWidgets.QLineEdit,
     )
     assert isinstance(
         widget.table.itemDelegateForColumn(2).createEditor(None, None, widget.model.index(1, 2)),
-        inputs.IntInputWidget,
+        QtWidgets.QSpinBox,
     )
 
 

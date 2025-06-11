@@ -21,24 +21,24 @@ class ValidatedInputDelegate(QtWidgets.QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         widget = get_validated_input(self.field_info, parent)
+        widget.editor.setParent(parent)
         widget.set_data(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
-
-        # fill in background as otherwise you can see the original View text underneath
-        widget.setAutoFillBackground(True)
-        widget.setBackgroundRole(QtGui.QPalette.ColorRole.Base)
 
         if self.remove_items is not None:
             for item in self.remove_items:
                 widget.editor.removeItem(item)
 
-        return widget
+        self.widget = widget
+        # Using the BaseInputWidget directly did not style properly,
+        # this uses the editor widget while holding a reference to BaseInputWidget.
+        return widget.editor
 
-    def setEditorData(self, editor: QtWidgets.QWidget, index):
+    def setEditorData(self, _editor: QtWidgets.QWidget, index):
         data = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
-        editor.set_data(data)
+        self.widget.set_data(data)
 
-    def setModelData(self, editor, model, index):
-        data = editor.get_data()
+    def setModelData(self, _editor, model, index):
+        data = self.widget.get_data()
         model.setData(index, data, QtCore.Qt.ItemDataRole.EditRole)
 
 
@@ -131,7 +131,7 @@ class ProjectFieldDelegate(QtWidgets.QStyledItemDelegate):
         self.blank_option = blank_option
 
     def createEditor(self, parent, option, index):
-        widget = QtWidgets.QComboBox(parent)
+        widget = QtWidgets.QComboBox(parent, objectName="DelegateComboBox")
         parameters = self.project_widget.draft_project[self.field]
         names = [p.name for p in parameters]
         if self.blank_option:

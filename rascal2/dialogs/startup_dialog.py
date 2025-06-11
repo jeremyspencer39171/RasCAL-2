@@ -1,9 +1,8 @@
 import os
 from pathlib import Path
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
-from rascal2.config import path_for
 from rascal2.core.settings import update_recent_projects
 
 # global variable for required project files
@@ -13,17 +12,6 @@ PROJECT_FILES = ["controls.json", "project.json"]
 class StartupDialog(QtWidgets.QDialog):
     """Base class for startup dialogs."""
 
-    _button_style = """background-color: {};
-                       color: #F2F1E8;
-                       padding-top: 0.3em;
-                       padding-left: 1em;
-                       padding-right: 1em;
-                       padding-bottom: 0.3em;
-                       font-weight: bold;
-                       border-radius: 0.5em"""
-    _label_style = "font-weight: bold"
-    _error_style = "color: #E34234"
-    _line_edit_error_style = "border: 1px solid #E34234"
     folder_selector = QtWidgets.QFileDialog.getExistingDirectory
 
     def __init__(self, parent):
@@ -47,15 +35,13 @@ class StartupDialog(QtWidgets.QDialog):
     def compose_layout(self):
         """Add widgets and layouts to the dialog's main layout."""
         main_layout = QtWidgets.QVBoxLayout()
-
         main_layout.setSpacing(20)
 
-        widgets = self.create_form()
-        for item in widgets:
-            if isinstance(item, QtWidgets.QWidget):
-                main_layout.addWidget(item)
-            elif isinstance(item, QtWidgets.QLayout):
-                main_layout.addLayout(item)
+        form_layout = QtWidgets.QGridLayout()
+        form_layout.setVerticalSpacing(10)
+        form_layout.setHorizontalSpacing(0)
+        main_layout.addLayout(form_layout)
+        self.create_form(form_layout)
 
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
@@ -77,49 +63,40 @@ class StartupDialog(QtWidgets.QDialog):
         list[QtWidgets.QWidget]
             A list of the widgets to be added to the bottom of the dialog, from left to right.
         """
-        cancel_button = QtWidgets.QPushButton(" Cancel", self)
-        cancel_button.setIcon(QtGui.QIcon(path_for("cancel-light.png")))
-        cancel_button.clicked.connect(self.reject)
-        cancel_button.setStyleSheet(self._button_style.format("#E34234"))
+        self.cancel_button = QtWidgets.QPushButton("Cancel", objectName="CancelButton")
+        self.cancel_button.clicked.connect(self.reject)
 
-        return [cancel_button]
+        return [self.cancel_button]
 
-    def create_form(self) -> list[QtWidgets.QWidget | QtWidgets.QLayout]:
+    def create_form(self, form_layout):
         """Create the widgets and layout for the dialog form.
 
         This is kept as a separate method so that it can be reimplemented by subclasses.
 
-        Returns
-        -------
-        list[QtWidgets.QWidget, QtWidgets.QLayout]
-            A list of widgets and layouts to add to the form, ordered top to bottom.
-
+        Parameters
+        ----------
+        form_layout : QtWidgets.QGridLayout
+            A layout to add the form to.
         """
-        self.project_folder_label = QtWidgets.QLabel("Project Folder:", self)
+        self.project_folder_label = QtWidgets.QLabel("Project Folder:")
         self.project_folder_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.project_folder_label.setStyleSheet(self._label_style)
 
         self.project_folder = QtWidgets.QLineEdit(self)
         self.project_folder.setReadOnly(True)
         self.project_folder.setPlaceholderText("Select project folder")
+        self.project_folder.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
 
-        browse_button = QtWidgets.QPushButton(" Browse", self)
-        browse_button.setIcon(QtGui.QIcon(path_for("browse-light.png")))
+        browse_button = QtWidgets.QPushButton("Browse", objectName="BrowseButton")
         browse_button.clicked.connect(self.open_folder_selector)
-        browse_button.setStyleSheet(self._button_style.format("#403F3F"))
 
-        self.project_folder_error = QtWidgets.QLabel("", self)
-        self.project_folder_error.setStyleSheet(self._error_style)
+        self.project_folder_error = QtWidgets.QLabel("", objectName="ErrorLabel")
         self.project_folder_error.hide()
 
-        project_folder_layout = QtWidgets.QGridLayout()
-        project_folder_layout.setVerticalSpacing(2)
-        project_folder_layout.addWidget(self.project_folder_label, 0, 0, 1, 1)
-        project_folder_layout.addWidget(self.project_folder, 0, 1, 1, 4)
-        project_folder_layout.addWidget(browse_button, 0, 5, 1, 1)
-        project_folder_layout.addWidget(self.project_folder_error, 1, 1, 1, 4)
-
-        return [project_folder_layout]
+        num_rows = form_layout.rowCount()
+        form_layout.addWidget(self.project_folder_label, num_rows, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignVCenter)
+        form_layout.addWidget(self.project_folder, num_rows, 1, 1, 4)
+        form_layout.addWidget(browse_button, num_rows, 5, 1, 1)
+        form_layout.addWidget(self.project_folder_error, num_rows + 1, 1, 1, 4)
 
     def open_folder_selector(self) -> None:
         """
@@ -146,12 +123,14 @@ class StartupDialog(QtWidgets.QDialog):
 
         """
         if msg:
-            self.project_folder.setStyleSheet(self._line_edit_error_style)
             self.project_folder_error.show()
             self.project_folder_error.setText(msg)
+            self.project_folder.setProperty("error", True)
         else:
-            self.project_folder.setStyleSheet("")
             self.project_folder_error.hide()
+            self.project_folder.setProperty("error", False)
+        self.project_folder.style().unpolish(self.project_folder)
+        self.project_folder.style().polish(self.project_folder)
 
     @staticmethod
     def verify_folder(folder_path: str):
@@ -167,39 +146,37 @@ class StartupDialog(QtWidgets.QDialog):
         """
         pass
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.cancel_button.setFocus()
+
 
 class NewProjectDialog(StartupDialog):
     """The dialog to create a new project."""
 
-    def create_form(self) -> list[QtWidgets.QWidget | QtWidgets.QLayout]:
+    def create_form(self, form_layout):
         self.setWindowTitle("New Project")
 
         # Project name widgets
-        self.project_name_label = QtWidgets.QLabel("Project Name:", self)
+        self.project_name_label = QtWidgets.QLabel("Project Name:")
         self.project_name_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.project_name_label.setStyleSheet(self._label_style)
 
         self.project_name = QtWidgets.QLineEdit(self)
         self.project_name.setPlaceholderText("Enter project name")
         self.project_name.textChanged.connect(self.verify_name)
 
-        self.project_name_error = QtWidgets.QLabel("Project name needs to be specified.", self)
-        self.project_name_error.setStyleSheet(self._error_style)
+        self.project_name_error = QtWidgets.QLabel("Project name needs to be specified.", objectName="ErrorLabel")
         self.project_name_error.hide()
 
-        project_name_layout = QtWidgets.QGridLayout()
-        project_name_layout.setVerticalSpacing(2)
-        project_name_layout.addWidget(self.project_name_label, 0, 0, 1, 1)
-        project_name_layout.addWidget(self.project_name, 0, 1, 1, 5)
-        project_name_layout.addWidget(self.project_name_error, 1, 1, 1, 5)
-
-        return [project_name_layout] + super().create_form()
+        num_rows = form_layout.rowCount()
+        form_layout.addWidget(self.project_name_label, num_rows, 0, 1, 1)
+        form_layout.addWidget(self.project_name, num_rows, 1, 1, 5)
+        form_layout.addWidget(self.project_name_error, num_rows + 1, 1, 1, 5)
+        super().create_form(form_layout)
 
     def create_buttons(self) -> list[QtWidgets.QWidget]:
-        create_button = QtWidgets.QPushButton(" Create", self)
-        create_button.setIcon(QtGui.QIcon(path_for("create.png")))
+        create_button = QtWidgets.QPushButton("Create", objectName="CreateButton")
         create_button.clicked.connect(self.create_project)
-        create_button.setStyleSheet(self._button_style.format("#0D69BB"))
 
         return [create_button] + super().create_buttons()
 
@@ -212,11 +189,13 @@ class NewProjectDialog(StartupDialog):
 
     def verify_name(self) -> None:
         if self.project_name.text() == "":
-            self.project_name.setStyleSheet(self._line_edit_error_style)
             self.project_name_error.show()
+            self.project_name.setProperty("error", True)
         else:
-            self.project_name.setStyleSheet("")
             self.project_name_error.hide()
+            self.project_name.setProperty("error", False)
+        self.project_name.style().unpolish(self.project_name)
+        self.project_name.style().polish(self.project_name)
 
     def create_project(self) -> None:
         """Create project if inputs are valid."""
@@ -231,33 +210,27 @@ class NewProjectDialog(StartupDialog):
 class LoadDialog(StartupDialog):
     """Dialog to load an existing project."""
 
-    def create_form(self) -> list[QtWidgets.QWidget | QtWidgets.QLayout]:
+    def create_form(self, form_layout):
         self.setWindowTitle("Load Project")
 
         recent_projects = update_recent_projects()
         recent_projects = recent_projects[:3]
 
-        if not recent_projects:
-            return super().create_form()
+        super().create_form(form_layout)
 
-        recent_projects_layout = QtWidgets.QVBoxLayout()
-        recent_projects_title = QtWidgets.QLabel("Recent projects:")
-        recent_projects_title.setStyleSheet(self._label_style)
-        recent_projects_layout.addWidget(recent_projects_title)
+        if recent_projects:
+            recent_projects_layout = QtWidgets.QVBoxLayout()
+            recent_projects_title = QtWidgets.QLabel("Recent projects:")
 
-        for project in recent_projects:
-            button = QtWidgets.QPushButton(f"  {project}")
-            button.setStyleSheet(
-                """
-            font: bold italic underline;
-            text-align: left;
-            """
-                + self._button_style.format("#403F3F")
-            )
-            button.pressed.connect(self.load_recent_project(project))
-            recent_projects_layout.addWidget(button)
+            for project in recent_projects:
+                button = QtWidgets.QPushButton(f"{project}", objectName="PreviousProjectButton")
 
-        return super().create_form() + [recent_projects_layout]
+                button.pressed.connect(self.load_recent_project(project))
+                recent_projects_layout.addWidget(button)
+
+            num_rows = form_layout.rowCount()
+            form_layout.addWidget(recent_projects_title, num_rows, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignTop)
+            form_layout.addLayout(recent_projects_layout, num_rows, 1, 1, -1)
 
     def load_recent_project(self, path: str):
         # use internal function so we can use it as a parameter-free slot
@@ -269,10 +242,8 @@ class LoadDialog(StartupDialog):
         return _load
 
     def create_buttons(self) -> list[QtWidgets.QWidget]:
-        load_button = QtWidgets.QPushButton(" Load", self)
-        load_button.setIcon(QtGui.QIcon(path_for("load-light.png")))
+        load_button = QtWidgets.QPushButton("Load", objectName="LoadButton")
         load_button.clicked.connect(self.load_project)
-        load_button.setStyleSheet(self._button_style.format("#0D69BB"))
 
         return [load_button] + super().create_buttons()
 
@@ -308,20 +279,16 @@ class LoadR1Dialog(StartupDialog):
         )[0]
         super().__init__(parent)
 
-    def create_form(self):
+    def create_form(self, form_layout):
         self.setWindowTitle("Load RasCAL-1 Project")
 
-        form = super().create_form()
+        super().create_form(form_layout)
         self.project_folder_label.setText("RasCAL-1 file:")
         self.project_folder.setPlaceholderText("Select RasCAL-1 file")
 
-        return form
-
     def create_buttons(self):
-        load_button = QtWidgets.QPushButton(" Load", self)
-        load_button.setIcon(QtGui.QIcon(path_for("load-light.png")))
+        load_button = QtWidgets.QPushButton("Load", objectName="LoadButton")
         load_button.clicked.connect(self.load_project)
-        load_button.setStyleSheet(self._button_style.format("#0D69BB"))
 
         return [load_button] + super().create_buttons()
 
