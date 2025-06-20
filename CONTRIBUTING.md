@@ -52,3 +52,10 @@ Style guidelines
 * `ruff format` must be used to format code.
 * Method names should be written in snake case (like_this). If you are overriding a PyQt6 method,
   add it to `extend-ignore-names` in the section `[tool.ruff.lint.pep8-naming]` in the pyproject.toml.
+
+How to build the executable
+---------------------------
+This script will create the executable for the software in the **packaging/bundle** folder.
+
+    cd packaging
+    python build_exe.py

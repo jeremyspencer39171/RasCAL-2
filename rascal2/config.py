@@ -6,7 +6,11 @@ from os import PathLike
 
 from rascal2.core import Settings, get_global_settings
 
-SOURCE_PATH = pathlib.Path(__file__).parent
+if getattr(sys, "frozen", False):
+    # we are running in a bundle
+    SOURCE_PATH = pathlib.Path(sys.executable).parent.parent
+else:
+    SOURCE_PATH = pathlib.Path(__file__).parent
 STATIC_PATH = SOURCE_PATH / "static"
 IMAGES_PATH = STATIC_PATH / "images"
 
