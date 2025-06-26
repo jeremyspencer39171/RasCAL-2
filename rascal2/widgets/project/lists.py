@@ -763,11 +763,9 @@ class DataWidget(AbstractProjectListWidget):
                         if field == "simulation_range":
                             widget.set_inner_limit(q_range)
                         else:
-                            widget.min_box.setMinimum(float(q_data.min()))
-                            widget.max_box.setMaximum(float(q_data.max()))
+                            widget.set_outer_limit(q_range)
                             widget.min_box.valueChanged.connect(lambda v: widget.max_box.setMinimum(v))
                             widget.max_box.valueChanged.connect(lambda v: widget.min_box.setMaximum(v))
-                            widget.set_outer_limit(q_range)
 
                     widget.data_changed.connect(
                         lambda: setattr(item, field, [widget.min_box.value(), widget.max_box.value()])
@@ -802,11 +800,9 @@ class DataWidget(AbstractProjectListWidget):
                         if field == "simulation_range":
                             widget.set_inner_limit(q_range)
                         else:
-                            widget.min_box.setMinimum(float(q_data.min()))
-                            widget.max_box.setMaximum(float(q_data.max()))
+                            widget.set_outer_limit(q_range)
                             widget.min_box.valueChanged.connect(lambda v: widget.max_box.setMinimum(v))
                             widget.max_box.valueChanged.connect(lambda v: widget.min_box.setMaximum(v))
-                            widget.set_outer_limit(q_range)
 
                     widget.data_changed.connect(
                         lambda: setattr(item, field, [widget.min_box.value(), widget.max_box.value()])

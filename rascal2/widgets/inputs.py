@@ -199,6 +199,8 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
         self.setStepType(self.StepType.AdaptiveDecimalStepType)
         self.setKeyboardTracking(False)
 
+        self.setDecimals(12)
+
     def textFromValue(self, value):
         """Set the display text for the spinbox from the value stored in the widget.
 
@@ -284,22 +286,15 @@ class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):
             else:
                 return (QtGui.QValidator.State.Intermediate, input_text, pos)
         elif "e" in input_text or "E" in input_text:
-            components = input_text.lower().split("e")
-            significand = components[0]
-            significand_decimals = len(significand.split(".")[-1])
-            exponent = components[1]
             try:
-                exponent_order = int(exponent)
                 _ = float(input_text)  # to ensure that we actually have a number before we accept
-                self.setDecimals(max(significand_decimals - exponent_order, 0))
                 return (QtGui.QValidator.State.Acceptable, input_text, pos)
             except ValueError:
                 return (QtGui.QValidator.State.Intermediate, input_text, pos)
         elif "." in input_text:
             # don't accept multiple decimal points
-            if len(parts := input_text.split(".")) > 2:
+            if len(input_text.split(".")) > 2:
                 return (QtGui.QValidator.State.Intermediate, input_text, pos)
-            self.setDecimals(sum(map(len, parts)))
             return (QtGui.QValidator.State.Acceptable, input_text, pos)
         else:
             try:
