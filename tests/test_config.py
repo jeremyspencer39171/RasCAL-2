@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from rascal2.config import setup_logging, setup_settings
-from rascal2.core.settings import LogLevels, Settings
+from rascal2.settings import LogLevels, Settings
 
 
 def test_setup_settings():

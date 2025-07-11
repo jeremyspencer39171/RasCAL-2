@@ -1,10 +1,14 @@
 import logging
+import os
+
+os.environ["DELAY_MATLAB_START"] = "1"
 import pathlib
 import platform
+import site
 import sys
-from os import PathLike
+from multiprocessing import Event, Manager, Process
 
-from rascal2.core import Settings, get_global_settings
+from rascal2.settings import Settings, get_global_settings
 
 if getattr(sys, "frozen", False):
     # we are running in a bundle
@@ -13,6 +17,12 @@ else:
     SOURCE_PATH = pathlib.Path(__file__).parent
 STATIC_PATH = SOURCE_PATH / "static"
 IMAGES_PATH = STATIC_PATH / "images"
+
+if not getattr(sys, "frozen", False):
+    site_path = site.getsitepackages()[-1]
+else:
+    site_path = SOURCE_PATH / "bin/_internal"
+MATLAB_ARCH_FILE = pathlib.Path(site_path) / "matlab/engine/_arch.txt"
 
 
 def handle_scaling():
@@ -39,7 +49,7 @@ def path_for(filename: str):
     return (IMAGES_PATH / filename).as_posix()
 
 
-def setup_settings(project_path: str | PathLike) -> Settings:
+def setup_settings(project_path: str | os.PathLike) -> Settings:
     """Set up the Settings object for the project.
 
     Parameters
@@ -63,7 +73,7 @@ def setup_settings(project_path: str | PathLike) -> Settings:
     return Settings()
 
 
-def setup_logging(log_path: str | PathLike, terminal, level: int = logging.INFO) -> logging.Logger:
+def setup_logging(log_path: str | os.PathLike, terminal, level: int = logging.INFO) -> logging.Logger:
     """Set up logging for the project.
 
     The default logging path and level are defined in the settings.
@@ -116,3 +126,154 @@ def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
     logger.critical("An unhandled exception occurred!", exc_info=(exc_type, exc_value, exc_traceback))
     logging.shutdown()
     sys.exit(1)
+
+
+def run_matlab(ready_event, close_event, engine_output):
+    """Start a new matlab engine instance and waits until closed
+
+    Parameters
+    ----------
+    ready_event : multiprocessing.Event
+        An event to inform listeners that MATLAB is ready.
+    close_event : multiprocessing.Event
+        An event to inform this function that MATLAB should be closed.
+    engine_output : multiprocessing.Manager.list
+        A list to output the name of MATLAB engine instance or an exception.
+
+    """
+    try:
+        import matlab.engine
+
+        eng = matlab.engine.start_matlab()
+        eng.matlab.engine.shareEngine(nargout=0)
+        engine_output.append(eng.matlab.engine.engineName(nargout=1).encode("utf-8"))
+    except Exception as ex:
+        engine_output.append(ex)
+        raise ex
+    ready_event.set()
+    close_event.wait()
+
+    eng.fclose("all", nargout=0)
+    eng.close("all", nargout=0)
+    eng.quit()
+
+
+def get_matlab_engine(engine_ready, engine_output, is_local=False):
+    """Get a MATLAB engine from the MatlabHelper or exception if no engine is available
+
+    Parameters
+    ----------
+    engine_ready : multiprocessing.Event
+        An event to inform listeners that MATLAB is ready.
+    engine_output :  multiprocessing.Manager.list
+        A list with the name of MATLAB engine instance or an exception from the MatlabHelper.
+    is_local : bool, default False
+        Indicates a local engine should be created other connect ratapi.
+
+    Returns
+    -------
+    output : Union[matlab.engine.futureresult.FutureResult, Exception]
+        MATLAB engine future or Exception from MatlabHelper
+    """
+    if not engine_output:
+        engine_ready.wait(timeout=60)
+
+    if engine_output:
+        if isinstance(engine_output[0], bytes):
+            engine_name = engine_output[0].decode("utf-8")
+            if is_local:
+                import matlab.engine
+
+                engine_future = matlab.engine.connect_matlab(engine_name, background=True)
+            else:
+                import ratapi
+
+                engine_future = ratapi.wrappers.use_shared_matlab(
+                    engine_name,
+                    "Error occurred when connecting to MATLAB, please ensure MATLAB is installed and set up properly.",
+                )
+
+            return engine_future
+        elif isinstance(engine_output[0], Exception):
+            return engine_output[0]
+    else:
+        return Exception("Matlab could not be started!")
+
+
+class MatlabHelper:
+    """Helper to start MATLAB on another process"""
+
+    def __init__(self):
+        self.error = ""
+        self.ready_event = Event()
+        self.close_event = Event()
+        self.engine_output = None
+
+        self.__engine = None
+
+    def async_start(self):
+        """Start MATLAB on a new process"""
+        if not self.get_matlab_path():
+            return
+        self.manager = Manager()
+        self.engine_output = self.manager.list()
+        self.process = Process(
+            target=run_matlab,
+            args=(
+                self.ready_event,
+                self.close_event,
+                self.engine_output,
+            ),
+        )
+        self.process.daemon = False
+        self.process.start()
+
+    def shutdown(self):
+        """Set close event to the MATLAB run function"""
+        self.ready_event.wait(timeout=60)
+        self.close_event.set()
+
+    def get_local_engine(self):
+        """Get an instance of MATLAB engine for use on the main process.
+
+        Returns
+        -------
+        matlab.engine.MatlabEngine
+            MATLAB engine instance
+        """
+        if self.__engine is not None:
+            return self.__engine
+
+        result = get_matlab_engine(self.ready_event, self.engine_output, True)
+        if isinstance(result, Exception):
+            raise result
+
+        self.__engine = result.result()
+        return self.__engine
+
+    def get_matlab_path(self):
+        """Get MATLAB install directory
+
+        Returns
+        -------
+        str
+            Return MATLAB install directory.
+        """
+        install_dir = ""
+        self.error = ""
+        try:
+            with open(MATLAB_ARCH_FILE) as path_file:
+                lines = path_file.readlines()
+                if len(lines) == 4:
+                    install_dir = pathlib.Path(lines[1]).parent.parent
+                elif len(lines) != 0:
+                    self.error = "Matlab not found, use 'Tools > Setup Matlab' to specify MATLAB location "
+        except FileNotFoundError:
+            self.error = "Matlab engine could not be found, ensure it is installed properly"
+        if self.error:
+            logger = logging.getLogger("rascal_log")
+            logger.error(f"{self.error}. Attempt to read MATLAB _arch file failed {MATLAB_ARCH_FILE}.")
+        return str(install_dir)
+
+
+MATLAB_HELPER = MatlabHelper()

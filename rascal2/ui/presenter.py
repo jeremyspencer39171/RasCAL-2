@@ -2,12 +2,12 @@ import re
 import warnings
 from typing import Any
 
-import RATapi as RAT
+import ratapi as rat
 
 from rascal2.core import commands
 from rascal2.core.enums import UnsavedReply
 from rascal2.core.runner import LogData, RATRunner
-from rascal2.core.settings import update_recent_projects
+from rascal2.settings import update_recent_projects
 
 from .model import MainWindowModel
 
@@ -166,8 +166,8 @@ class MainWindowPresenter:
         """Sends an interrupt signal to the RAT runner."""
         self.runner.interrupt()
 
-    def run(self, procedure: RAT.utils.enums.Procedures = None):
-        """Run RAT.
+    def run(self, procedure: rat.utils.enums.Procedures = None):
+        """Run rat.
 
         Parameters
         ----------
@@ -190,8 +190,8 @@ class MainWindowPresenter:
         if procedure is not None:
             self.model.controls.procedure = procedure
 
-        rat_inputs = RAT.inputs.make_input(self.model.project, self.model.controls)
-        display_on = self.model.controls.display != RAT.utils.enums.Display.Off
+        rat_inputs = rat.inputs.make_input(self.model.project, self.model.controls)
+        display_on = self.model.controls.display != rat.utils.enums.Display.Off
 
         self.runner = RATRunner(rat_inputs, self.model.controls.procedure, display_on)
         self.runner.finished.connect(self.handle_results)
@@ -230,9 +230,9 @@ class MainWindowPresenter:
                 chi_squared = get_live_chi_squared(event, str(self.model.controls.procedure))
                 if chi_squared is not None:
                     self.view.controls_widget.chi_squared.setText(chi_squared)
-            case RAT.events.ProgressEventData():
+            case rat.events.ProgressEventData():
                 self.view.terminal_widget.update_progress(event)
-            case RAT.events.PlotEventData():
+            case rat.events.PlotEventData():
                 self.view.plot_widget.plot_event(event)
             case LogData():
                 self.view.logging.log(event.level, event.msg)

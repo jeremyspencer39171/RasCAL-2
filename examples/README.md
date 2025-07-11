@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains example projects which correspond to the examples in RATapi.
+This directory contains example projects which correspond to the examples in ratapi.
 They can all be loaded with the RasCAL-2 project load dialog.
 
 To (re-)create the examples, run `make_examples.py` in this directory.

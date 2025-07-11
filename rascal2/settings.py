@@ -1,7 +1,13 @@
 """Global settings for RasCAL."""
 
 import logging
-from enum import IntEnum, StrEnum
+from enum import IntEnum
+
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
+
 from os import PathLike
 from pathlib import Path
 from typing import Any, TypeAlias

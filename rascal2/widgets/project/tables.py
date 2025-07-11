@@ -6,9 +6,9 @@ from enum import Enum
 from pathlib import Path
 
 import pydantic
-import RATapi
+import ratapi
 from PyQt6 import QtCore, QtGui, QtWidgets
-from RATapi.utils.enums import Languages, Procedures, TypeOptions
+from ratapi.utils.enums import Languages, Procedures, TypeOptions
 
 import rascal2.widgets.delegates as delegates
 from rascal2.config import path_for
@@ -29,19 +29,20 @@ class ClassListTableModel(QtCore.QAbstractTableModel):
 
     """
 
-    def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
+    def __init__(self, classlist: ratapi.ClassList, parent: QtWidgets.QWidget):
         super().__init__(parent)
         self.parent = parent
 
-        self.classlist: RATapi.ClassList
+        self.classlist: ratapi.ClassList
         self.item_type: type
         self.headers: list[str]
 
         self.setup_classlist(classlist)
         self.edit_mode = False
 
-    def setup_classlist(self, classlist: RATapi.ClassList):
+    def setup_classlist(self, classlist: ratapi.ClassList):
         """Setup the ClassList, type and headers for the model."""
+
         self.classlist = classlist
         self.item_type = classlist._class_handle
         if not issubclass(self.item_type, pydantic.BaseModel):
@@ -267,15 +268,15 @@ class ProjectFieldWidget(QtWidgets.QWidget):
 class ParametersModel(ClassListTableModel):
     """Classlist model for Parameters."""
 
-    def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
+    def __init__(self, classlist: ratapi.ClassList, parent: QtWidgets.QWidget):
         super().__init__(classlist, parent)
         self.headers.insert(0, self.headers.pop(self.headers.index("fit")))
         self.headers.pop(self.headers.index("show_priors"))
 
         self.protected_indices = []
-        if self.item_type is RATapi.models.Parameter:
+        if self.item_type is ratapi.models.Parameter:
             for i, item in enumerate(classlist):
-                if isinstance(item, RATapi.models.ProtectedParameter):
+                if isinstance(item, ratapi.models.ProtectedParameter):
                     self.protected_indices.append(i)
 
     def flags(self, index):
@@ -344,9 +345,9 @@ class ParameterFieldWidget(ProjectFieldWidget):
 class LayersModel(ClassListTableModel):
     """Classlist model for Layers."""
 
-    def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
+    def __init__(self, classlist: ratapi.ClassList, parent: QtWidgets.QWidget):
         super().__init__(classlist, parent)
-        self.absorption = classlist._class_handle == RATapi.models.AbsorptionLayer
+        self.absorption = classlist._class_handle == ratapi.models.AbsorptionLayer
         self.SLD_imags = {}
 
     def flags(self, index):
@@ -375,9 +376,9 @@ class LayersModel(ClassListTableModel):
             self.beginResetModel()
             self.absorption = absorption
             if absorption:
-                classlist = RATapi.ClassList(
+                classlist = ratapi.ClassList(
                     [
-                        RATapi.models.AbsorptionLayer(
+                        ratapi.models.AbsorptionLayer(
                             **dict(layer),
                             SLD_imaginary=self.SLD_imags.get(layer.name, ""),
                         )
@@ -385,14 +386,14 @@ class LayersModel(ClassListTableModel):
                     ]
                 )
                 # set handle manually for if classlist is empty
-                classlist._class_handle = RATapi.models.AbsorptionLayer
+                classlist._class_handle = ratapi.models.AbsorptionLayer
             else:
                 # we save the SLD_imaginary values so that they aren't lost if the
                 # user accidentally toggles absorption off and on!
                 self.SLD_imags = {layer.name: layer.SLD_imaginary for layer in self.classlist}
-                classlist = RATapi.ClassList(
+                classlist = ratapi.ClassList(
                     [
-                        RATapi.models.Layer(
+                        ratapi.models.Layer(
                             name=layer.name,
                             thickness=layer.thickness,
                             SLD=layer.SLD_real,
@@ -403,7 +404,7 @@ class LayersModel(ClassListTableModel):
                         for layer in self.classlist
                     ]
                 )
-                classlist._class_handle = RATapi.models.Layer
+                classlist._class_handle = ratapi.models.Layer
             self.setup_classlist(classlist)
             self.parent.parent.parent.update_draft_project({"layers": classlist})
             self.endResetModel()
@@ -477,7 +478,7 @@ class DomainContrastWidget(ProjectFieldWidget):
 class CustomFileModel(ClassListTableModel):
     """Classlist model for custom files."""
 
-    def __init__(self, classlist: RATapi.ClassList, parent: QtWidgets.QWidget):
+    def __init__(self, classlist: ratapi.ClassList, parent: QtWidgets.QWidget):
         super().__init__(classlist, parent)
         self.func_names = {}
         self.headers.remove("path")

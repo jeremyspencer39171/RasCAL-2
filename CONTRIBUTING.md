@@ -59,3 +59,18 @@ This script will create the executable for the software in the **packaging/bundl
 
     cd packaging
     python build_exe.py
+
+How to build the Installer
+--------------------------
+### Windows
+1. [NSIS](https://sourceforge.net/projects/nsis/)  is required to build the Windows installer, this can be installed from Conda along with other essential  
+plugins
+   
+        conda install -c nsis nsis=3.* accesscontrol
+    
+2. After installing NSIS, build the executable then run the build script **packaging/windows/build_installer.nsi**.
+
+        cd packaging/
+        python build_exe.py
+        makensis windows/build_installer.nsi
+      

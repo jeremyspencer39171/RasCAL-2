@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import BaseModel, Field
 from PyQt6 import QtWidgets
-from RATapi.controls import Controls, fields
+from ratapi.controls import Controls, fields
 
 from rascal2.widgets.controls import ControlsWidget, FitSettingsWidget
 

@@ -4,8 +4,9 @@ import logging
 from pathlib import Path
 
 from PyQt6 import Qsci, QtGui, QtWidgets
-from RATapi.utils.enums import Languages
-from RATapi.wrappers import start_matlab
+from ratapi.utils.enums import Languages
+
+from rascal2.config import MATLAB_HELPER
 
 
 def edit_file(filename: str, language: Languages, parent: QtWidgets.QWidget):
@@ -33,14 +34,13 @@ def edit_file(filename: str, language: Languages, parent: QtWidgets.QWidget):
 
 def edit_file_matlab(filename: str):
     """Open a file in MATLAB."""
-    loader = start_matlab()
-
-    if loader is None:
+    try:
+        engine = MATLAB_HELPER.get_local_engine()
+    except Exception as ex:
         logger = logging.getLogger("rascal_log")
-        logger.error("Attempted to edit a file in MATLAB engine, but `matlabengine` is not available.")
+        logger.error("Attempted to edit a file in MATLAB engine" + repr(ex))
         return
 
-    engine = loader.result()
     engine.edit(str(filename))
 
 

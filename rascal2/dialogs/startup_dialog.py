@@ -3,7 +3,7 @@ from pathlib import Path
 
 from PyQt6 import QtCore, QtWidgets
 
-from rascal2.core.settings import update_recent_projects
+from rascal2.settings import update_recent_projects
 
 # global variable for required project files
 PROJECT_FILES = ["controls.json", "project.json"]

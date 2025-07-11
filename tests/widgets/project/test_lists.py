@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from PyQt6 import QtWidgets
-from RATapi import ClassList
+from ratapi import ClassList
 
 from rascal2.widgets.project.lists import AbstractProjectListWidget, ClassListItemModel, StandardLayerModelWidget
 

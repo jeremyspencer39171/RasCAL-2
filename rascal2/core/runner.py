@@ -1,16 +1,18 @@
-"""QObject for running RAT."""
+"""QObject for running rat."""
 
 from dataclasses import dataclass
 from logging import INFO
 from multiprocessing import Process, Queue
 
-import RATapi as RAT
+import ratapi as rat
 from PyQt6 import QtCore
-from RATapi.utils.enums import Procedures
+from ratapi.utils.enums import Procedures
+
+from rascal2.config import MATLAB_HELPER, get_matlab_engine
 
 
 class RATRunner(QtCore.QObject):
-    """Class for running RAT."""
+    """Class for running rat."""
 
     event_received = QtCore.pyqtSignal()
     finished = QtCore.pyqtSignal()
@@ -24,8 +26,17 @@ class RATRunner(QtCore.QObject):
 
         # this queue handles both event data and results
         self.queue = Queue()
-
-        self.process = Process(target=run, args=(self.queue, rat_inputs, procedure, display_on))
+        self.process = Process(
+            target=run,
+            args=(
+                self.queue,
+                rat_inputs,
+                procedure,
+                display_on,
+                MATLAB_HELPER.ready_event,
+                MATLAB_HELPER.engine_output,
+            ),
+        )
 
         self.updated_problem = None
         self.results = None
@@ -60,7 +71,7 @@ class RATRunner(QtCore.QObject):
                 self.event_received.emit()
 
 
-def run(queue, rat_inputs: tuple, procedure: str, display: bool):
+def run(queue, rat_inputs: tuple, procedure: str, display: bool, engine_ready, engine_output):
     """Run RAT and put the result into the queue.
 
     Parameters
@@ -68,7 +79,7 @@ def run(queue, rat_inputs: tuple, procedure: str, display: bool):
     queue : Queue
         The interprocess queue for the RATRunner.
     rat_inputs : tuple
-        The C++ inputs for RAT.
+        The C++ inputs for rat.
     procedure : str
         The optimisation procedure.
     display : bool
@@ -77,25 +88,35 @@ def run(queue, rat_inputs: tuple, procedure: str, display: bool):
     """
     problem_definition, cpp_controls = rat_inputs
 
+    engine_future = None
+    if any([file["language"] == "matlab" for file in problem_definition.customFiles.files]):
+        result = get_matlab_engine(engine_ready, engine_output)
+        if isinstance(result, Exception):
+            queue.put(result)
+            return
+        else:
+            engine_future = result
+
     if display:
-        RAT.events.register(RAT.events.EventTypes.Message, queue.put)
-        RAT.events.register(RAT.events.EventTypes.Progress, queue.put)
-        RAT.events.register(RAT.events.EventTypes.Plot, queue.put)
+        rat.events.register(rat.events.EventTypes.Message, queue.put)
+        rat.events.register(rat.events.EventTypes.Progress, queue.put)
+        rat.events.register(rat.events.EventTypes.Plot, queue.put)
         queue.put(LogData(INFO, "Starting RAT"))
 
     try:
-        problem_definition, output_results, bayes_results = RAT.rat_core.RATMain(problem_definition, cpp_controls)
-        results = RAT.outputs.make_results(procedure, output_results, bayes_results)
+        problem_definition, output_results, bayes_results = rat.rat_core.RATMain(problem_definition, cpp_controls)
+        results = rat.outputs.make_results(procedure, output_results, bayes_results)
+        if engine_future is not None:
+            engine_future.result().exit()
     except Exception as err:
         queue.put(err)
         return
 
     if display:
         queue.put(LogData(INFO, "Finished RAT"))
-        RAT.events.clear()
+        rat.events.clear()
 
     queue.put((problem_definition, results))
-    return
 
 
 @dataclass

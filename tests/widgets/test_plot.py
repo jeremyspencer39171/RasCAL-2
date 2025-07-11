@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-import RATapi
+import ratapi
 from PyQt6 import QtWidgets
 
 from rascal2.widgets.plot import AbstractPanelPlotWidget, ContourPlotWidget, PlotWidget, RefSLDWidget
@@ -49,7 +49,7 @@ def mock_bayes_results():
     """A mock of Bayes results with given fit parameter names."""
 
     def _mock_bayes(fitnames):
-        bayes_results = MagicMock(spec=RATapi.outputs.BayesResults)
+        bayes_results = MagicMock(spec=ratapi.outputs.BayesResults)
         bayes_results.fitNames = fitnames
 
         return bayes_results
@@ -75,13 +75,13 @@ class MockPanelPlot(AbstractPanelPlotWidget):
 
 def test_plot_widget_update_plots(plot_widget):
     """Test that the plots are updated correctly when update_plots is called."""
-    plot_widget.update_plots(MagicMock(), MagicMock(spec=RATapi.outputs.Results))
+    plot_widget.update_plots(MagicMock(), MagicMock(spec=ratapi.outputs.Results))
 
     assert not plot_widget.bayes_plots_button.isVisibleTo(plot_widget)
     plot_widget.reflectivity_plot.plot.assert_called_once()
     plot_widget.reflectivity_plot.reset_mock()
 
-    plot_widget.update_plots(MagicMock(), MagicMock(spec=RATapi.outputs.BayesResults))
+    plot_widget.update_plots(MagicMock(), MagicMock(spec=ratapi.outputs.BayesResults))
 
     assert plot_widget.bayes_plots_button.isVisibleTo(plot_widget)
     plot_widget.reflectivity_plot.plot.assert_called_once()
@@ -96,10 +96,10 @@ def test_ref_sld_toggle_setting(sld_widget):
     assert not sld_widget.plot_controls.isVisibleTo(sld_widget)
 
 
-@patch("RATapi.plotting.RATapi.plotting.plot_ref_sld_helper")
+@patch("ratapi.plotting.ratapi.plotting.plot_ref_sld_helper")
 def test_ref_sld_plot_event(mock_plot_sld, sld_widget):
     """Test that plot helper recieved correct flags from UI."""
-    data = RATapi.events.PlotEventData()
+    data = ratapi.events.PlotEventData()
     data.contrastNames = ["Hello"]
 
     assert sld_widget.current_plot_data is None
@@ -146,20 +146,20 @@ def test_ref_sld_plot_event(mock_plot_sld, sld_widget):
     )
 
 
-@patch("RATapi.inputs.make_input")
+@patch("ratapi.inputs.make_input")
 def test_ref_sld_plot(mock_inputs, sld_widget):
     """Test that the plot is made when given a plot event."""
     project = MagicMock()
     result = MagicMock()
     data = MagicMock
-    with patch("RATapi.events.PlotEventData", return_value=data):
+    with patch("ratapi.events.PlotEventData", return_value=data):
         assert sld_widget.current_plot_data is None
         sld_widget.plot(project, result)
         assert sld_widget.current_plot_data is data
         sld_widget.canvas.draw.assert_called_once()
 
 
-@patch("RATapi.plotting.RATapi.plotting.plot_contour")
+@patch("ratapi.plotting.ratapi.plotting.plot_contour")
 def test_contour_plot_fit_names(mock_plot_contour, contour_widget, mock_bayes_results):
     """Test that the contour plot widget plots when fit names are selected."""
     bayes_results = mock_bayes_results(["A", "B", "C"])

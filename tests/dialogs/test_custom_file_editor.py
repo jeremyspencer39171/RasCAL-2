@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from PyQt6 import Qsci, QtWidgets
-from RATapi.utils.enums import Languages
+from ratapi.utils.enums import Languages
 
 from rascal2.dialogs.custom_file_editor import CustomFileEditorDialog, edit_file, edit_file_matlab
 
@@ -58,31 +58,32 @@ def test_edit_file_matlab():
     """Assert that a file is passed to the engine when the MATLAB editor is called."""
     mock_engine = MagicMock()
     mock_engine.edit = MagicMock()
-    mock_loader = MagicMock()
-    mock_loader.result = MagicMock(return_value=mock_engine)
-    with patch("rascal2.dialogs.custom_file_editor.start_matlab", return_value=mock_loader) as mock_start:
+    mock_helper = MagicMock()
+    mock_helper.get_local_engine = MagicMock(return_value=mock_engine)
+    with patch("rascal2.dialogs.custom_file_editor.MATLAB_HELPER", mock_helper):
         with tempfile.TemporaryDirectory() as tmp:
             file = Path(tmp, "testfile.m")
             file.touch()
             edit_file_matlab(file)
 
-        mock_start.assert_called_once()
-        mock_loader.result.assert_called_once()
+        mock_helper.get_local_engine.assert_called_once()
         mock_engine.edit.assert_called_once_with(str(file))
 
 
 def test_edit_no_matlab_engine(caplog):
     """A logging error should be produced if a user tries to edit a file in MATLAB with no engine available."""
-    with patch("rascal2.dialogs.custom_file_editor.start_matlab", return_value=None) as mock_loader:
+    mock_helper = MagicMock()
+    mock_helper.get_local_engine = MagicMock(side_effect=ValueError)
+    with patch("rascal2.dialogs.custom_file_editor.MATLAB_HELPER", mock_helper):
         with tempfile.TemporaryDirectory() as tmp:
             file = Path(tmp, "testfile.m")
             file.touch()
             edit_file_matlab(file)
-        mock_loader.assert_called_once()
+        mock_helper.get_local_engine.assert_called_once()
 
     errors = [record for record in caplog.get_records("call") if record.levelno == logging.ERROR]
     assert len(errors) == 1
-    assert "Attempted to edit a file in MATLAB engine, but `matlabengine` is not available." in caplog.text
+    assert "Attempted to edit a file in MATLAB engine" in caplog.text
 
 
 @pytest.mark.parametrize(

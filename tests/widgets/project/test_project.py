@@ -2,9 +2,9 @@ from unittest.mock import MagicMock
 
 import pydantic
 import pytest
-import RATapi
+import ratapi
 from PyQt6 import QtCore, QtWidgets
-from RATapi.utils.enums import Calculations, Geometries, LayerModels
+from ratapi.utils.enums import Calculations, Geometries, LayerModels
 
 from rascal2.widgets.project.project import ProjectTabWidget, ProjectWidget, create_draft_project
 from rascal2.widgets.project.tables import (
@@ -18,7 +18,7 @@ from rascal2.widgets.project.tables import (
 class MockModel(QtCore.QObject):
     def __init__(self):
         super().__init__()
-        self.project = RATapi.Project()
+        self.project = ratapi.Project()
         self.controls = MagicMock()
         self.project_updated = MagicMock()
         self.controls_updated = MagicMock()
@@ -51,7 +51,7 @@ parent = MockMainWindow()
 @pytest.fixture
 def classlist():
     """A test ClassList."""
-    return RATapi.ClassList([DataModel(name="A", value=1), DataModel(name="B", value=6), DataModel(name="C", value=18)])
+    return ratapi.ClassList([DataModel(name="A", value=1), DataModel(name="B", value=6), DataModel(name="C", value=18)])
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ def setup_project_widget():
 
 @pytest.fixture
 def project_with_draft():
-    draft = create_draft_project(RATapi.Project())
+    draft = create_draft_project(ratapi.Project())
     project = ProjectWidget(parent)
     project.draft_project = draft
     return project
@@ -79,9 +79,9 @@ def project_with_draft():
 @pytest.fixture
 def param_classlist():
     def _classlist(protected_indices):
-        return RATapi.ClassList(
+        return ratapi.ClassList(
             [
-                RATapi.models.ProtectedParameter(name=str(i)) if i in protected_indices else RATapi.models.Parameter()
+                ratapi.models.ProtectedParameter(name=str(i)) if i in protected_indices else ratapi.models.Parameter()
                 for i in [0, 1, 2]
             ]
         )
@@ -244,7 +244,7 @@ def test_project_tab_init():
     tab = ProjectTabWidget(fields, parent)
 
     for field in fields:
-        if field in RATapi.project.parameter_class_lists:
+        if field in ratapi.project.parameter_class_lists:
             assert isinstance(tab.tables[field], ParameterFieldWidget)
         else:
             assert isinstance(tab.tables[field], ProjectFieldWidget)
@@ -281,11 +281,11 @@ def test_project_tab_validate_layers(input_params, absorption):
     params = ["Param 1", "Param 2", "Invalid Param", ""]
     if absorption:
         attrs = ["thickness", "SLD_real", "SLD_imaginary", "roughness", "hydration"]
-        layer_class = RATapi.models.AbsorptionLayer
+        layer_class = ratapi.models.AbsorptionLayer
     else:
         attrs = ["thickness", "SLD", "roughness", "hydration"]
-        layer_class = RATapi.models.Layer
-    layers = RATapi.ClassList(
+        layer_class = ratapi.models.Layer
+    layers = ratapi.ClassList(
         [
             layer_class(**{attr: params[input_params[0][i]] for i, attr in enumerate(attrs)}),
             layer_class(**{attr: params[input_params[1][i]] for i, attr in enumerate(attrs)}),
@@ -303,18 +303,16 @@ def test_project_tab_validate_layers(input_params, absorption):
             expected_err.append(msg)
         if invalid_params:
             noun = "an invalid value" if len(invalid_params) == 1 else "invalid values"
-            msg = (
-                f"Layer '{layer.name}' (row {i + 1}) has {noun}: "
-                f"{', '.join(f'"Invalid Param" for parameter {p}' for p in invalid_params)}"
-            )
+            inner_msg = [f'"Invalid Param" for parameter {p}' for p in invalid_params]
+            msg = f"Layer '{layer.name}' (row {i + 1}) has {noun}: {', '.join(inner_msg)}"
             expected_err.append(msg)
 
-    draft = create_draft_project(RATapi.Project())
+    draft = create_draft_project(ratapi.Project())
     draft["layers"] = layers
-    draft["parameters"] = RATapi.ClassList(
+    draft["parameters"] = ratapi.ClassList(
         [
-            RATapi.models.Parameter(name="Param 1"),
-            RATapi.models.Parameter(name="Param 2"),
+            ratapi.models.Parameter(name="Param 1"),
+            ratapi.models.Parameter(name="Param 2"),
         ]
     )
 
@@ -341,9 +339,9 @@ def test_project_tab_validate_contrast_models_standard(calculation, model_values
     """Test that contrast values are correctly validated for a standard layers calculation."""
     model_names = ["1", "2", "Invalid 1", "Invalid 2"]
     models = [[model_names[i] for i in model_values[j]] for j in [0, 1]]
-    contrasts = RATapi.ClassList(
+    contrasts = ratapi.ClassList(
         [
-            RATapi.models.Contrast(
+            ratapi.models.Contrast(
                 name=f"contrast {i}",
                 data="Simulation",
                 background="Background 1",
@@ -373,17 +371,17 @@ def test_project_tab_validate_contrast_models_standard(calculation, model_values
     draft = project_with_draft.draft_project
     draft["calculation"] = calculation
     draft["contrasts"] = contrasts
-    draft["parameters"] = RATapi.ClassList(RATapi.models.Parameter(name="p"))
-    draft["layers"] = RATapi.ClassList(
+    draft["parameters"] = ratapi.ClassList(ratapi.models.Parameter(name="p"))
+    draft["layers"] = ratapi.ClassList(
         [
-            RATapi.models.Layer(name="1", thickness="p", SLD="p", roughness="p"),
-            RATapi.models.Layer(name="2", thickness="p", SLD="p", roughness="p"),
+            ratapi.models.Layer(name="1", thickness="p", SLD="p", roughness="p"),
+            ratapi.models.Layer(name="2", thickness="p", SLD="p", roughness="p"),
         ]
     )
-    draft["domain_contrasts"] = RATapi.ClassList(
+    draft["domain_contrasts"] = ratapi.ClassList(
         [
-            RATapi.models.DomainContrast(name="1", model=["1", "2"]),
-            RATapi.models.DomainContrast(name="2", model=["1", "2"]),
+            ratapi.models.DomainContrast(name="1", model=["1", "2"]),
+            ratapi.models.DomainContrast(name="2", model=["1", "2"]),
         ]
     )
 
@@ -395,9 +393,9 @@ def test_project_tab_validate_contrast_models_standard(calculation, model_values
 def test_project_tab_validate_contrast_models_custom(contrast_models, calc_type, project_with_draft):
     """Test that contrast values are correctly validated for a custom layers/XY calculation."""
     custom_files = ["Custom File 1", "Invalid Custom File"]
-    contrasts = RATapi.ClassList(
+    contrasts = ratapi.ClassList(
         [
-            RATapi.models.Contrast(
+            ratapi.models.Contrast(
                 name=f"contrast {i}",
                 data="Simulation",
                 background="Background 1",
@@ -418,7 +416,7 @@ def test_project_tab_validate_contrast_models_custom(contrast_models, calc_type,
 
     draft = project_with_draft.draft_project
     draft["model"] = calc_type
-    draft["custom_files"] = RATapi.ClassList([RATapi.models.CustomFile(name="Custom File 1", filename="test.py")])
+    draft["custom_files"] = ratapi.ClassList([ratapi.models.CustomFile(name="Custom File 1", filename="test.py")])
     draft["contrasts"] = contrasts
 
     assert list(project_with_draft.validate_contrasts()) == expected_err

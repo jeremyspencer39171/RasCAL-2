@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import ValidationError
 from PyQt6 import QtWidgets
-from RATapi import Controls
-from RATapi.events import ProgressEventData
-from RATapi.inputs import ProblemDefinition
+from ratapi import Controls
+from ratapi.events import ProgressEventData
+from ratapi.inputs import ProblemDefinition
 
 from rascal2.core.runner import LogData
 from rascal2.ui.presenter import MainWindowPresenter
@@ -80,7 +80,7 @@ def test_controls_validation_error(presenter, param, value):
         raise AssertionError("Invalid data did not raise error!")
 
 
-@patch("RATapi.inputs.make_input")
+@patch("ratapi.inputs.make_input")
 @patch("rascal2.ui.presenter.RATRunner")
 def test_run_and_interrupt(mock_runner, mock_inputs, presenter):
     """Test that the runner can be started and interrupted."""
@@ -93,7 +93,7 @@ def test_run_and_interrupt(mock_runner, mock_inputs, presenter):
 
 
 @patch("rascal2.core.commands.SaveCalculationOutputs")
-@patch("RATapi.inputs.make_problem")
+@patch("ratapi.inputs.make_problem")
 def test_handle_results(mock_problem_def, mock_command, presenter):
     """Test that results are handed to the view correctly."""
     presenter.runner = MagicMock()

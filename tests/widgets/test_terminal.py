@@ -1,6 +1,6 @@
 """Tests for the terminal widget."""
 
-from RATapi.events import ProgressEventData
+from ratapi.events import ProgressEventData
 
 from rascal2.widgets.terminal import TerminalWidget
 

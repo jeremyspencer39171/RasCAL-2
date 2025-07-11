@@ -4,8 +4,8 @@ from typing import Any, Callable
 
 from pydantic import ValidationError
 from PyQt6 import QtCore, QtWidgets
-from RATapi.controls import common_fields, fields
-from RATapi.utils.enums import Procedures
+from ratapi.controls import common_fields, fields
+from ratapi.utils.enums import Procedures
 
 from rascal2.widgets.inputs import get_validated_input
 

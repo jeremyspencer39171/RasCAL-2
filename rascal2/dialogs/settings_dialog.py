@@ -1,6 +1,6 @@
 from PyQt6 import QtCore, QtWidgets
 
-from rascal2.core.settings import Settings, SettingsGroups, delete_local_settings
+from rascal2.settings import Settings, SettingsGroups, delete_local_settings
 from rascal2.widgets.inputs import get_validated_input
 
 

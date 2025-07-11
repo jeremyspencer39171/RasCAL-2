@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import RATapi as RAT
+import ratapi as rat
 
 examples = [
     "DSPC_custom_XY",
@@ -13,7 +13,7 @@ examples = [
 ]
 
 for example in examples:
-    p, _ = getattr(RAT.examples, example)()
+    p, _ = getattr(rat.examples, example)()
     # TODO remove this when RascalSoftware/python-RAT/#126 is fixed
     # https://github.com/RascalSoftware/python-RAT/issues/126
     for custom_file in p.custom_files:
@@ -21,4 +21,4 @@ for example in examples:
     example_folder = Path(f"./{example}/")
     example_folder.mkdir(parents=True, exist_ok=True)
     p.save(example_folder, "project")
-    RAT.Controls().save(example_folder, "controls") 
+    rat.Controls().save(example_folder, "controls") 

@@ -2,8 +2,8 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Union
 
-import RATapi as RAT
-import RATapi.outputs
+import ratapi as rat
+import ratapi.outputs
 from PyQt6 import QtCore
 
 
@@ -45,16 +45,16 @@ class MainWindowModel(QtCore.QObject):
         save_path : str
             The save path of the project.
         """
-        self.project = RAT.Project(name=name)
-        self.controls = RAT.Controls()
+        self.project = rat.Project(name=name)
+        self.controls = rat.Controls()
         self.save_path = save_path
 
-    def update_results(self, results: Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]):
+    def update_results(self, results: Union[ratapi.outputs.Results, ratapi.outputs.BayesResults]):
         """Update the project given a set of results.
 
         Parameters
         ----------
-        results : Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]
+        results : Union[ratapi.outputs.Results, ratapi.outputs.BayesResults]
             The calculation results.
         """
         self.results = results
@@ -96,7 +96,7 @@ class MainWindowModel(QtCore.QObject):
         """
         results_file = Path(load_path, "results.json")
         try:
-            results = RAT.Results.load(results_file)
+            results = rat.Results.load(results_file)
         except FileNotFoundError:
             # If results are not included, simply move on.
             results = None
@@ -108,7 +108,7 @@ class MainWindowModel(QtCore.QObject):
 
         controls_file = Path(load_path, "controls.json")
         try:
-            controls = RAT.Controls.load(controls_file)
+            controls = rat.Controls.load(controls_file)
         except ValueError as err:
             raise ValueError(
                 "The controls.json file for this project is not valid.\n"
@@ -117,11 +117,11 @@ class MainWindowModel(QtCore.QObject):
 
         project_file = Path(load_path, "project.json")
         try:
-            project = RAT.Project.load(project_file)
+            project = rat.Project.load(project_file)
             # TODO remove this when RascalSoftware/python-RAT/#126 is fixed
             # https://github.com/RascalSoftware/python-RAT/issues/126
             for file in project.custom_files:
-                file.path = Path(load_path, file.path)
+                file.path = Path(file.path)
         except JSONDecodeError as err:
             raise ValueError("The project.json file for this project contains invalid JSON.") from err
         except (KeyError, ValueError) as err:
@@ -141,8 +141,8 @@ class MainWindowModel(QtCore.QObject):
             The path to the RasCAL-1 file.
 
         """
-        self.project = RAT.utils.convert.r1_to_project(load_path)
-        self.controls = RAT.Controls()
+        self.project = rat.utils.convert.r1_to_project(load_path)
+        self.controls = rat.Controls()
         self.save_path = str(Path(load_path).parent)
 
     def update_controls(self, new_values: dict):

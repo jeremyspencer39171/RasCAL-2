@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PyQt6 import QtWidgets
 
-from rascal2.core.settings import MDIGeometries, Settings
+from rascal2.settings import MDIGeometries, Settings
 from rascal2.ui.view import MainWindowView
 
 

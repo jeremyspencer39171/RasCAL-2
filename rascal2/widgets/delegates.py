@@ -3,7 +3,7 @@
 from typing import Literal
 
 from PyQt6 import QtCore, QtGui, QtWidgets
-from RATapi.utils.enums import TypeOptions
+from ratapi.utils.enums import TypeOptions
 
 from rascal2.widgets.inputs import AdaptiveDoubleSpinBox, MultiSelectComboBox, get_validated_input
 

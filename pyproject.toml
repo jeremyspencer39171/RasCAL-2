@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "rascal2"
 dynamic = ["version"]
 dependencies = [
-  "RATapi",
+  "ratapi",
   "PyQt6",
 ]
 description = "RasCAL2: GUI for Reflectivity Algorithm Toolbox (RAT)"

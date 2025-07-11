@@ -4,9 +4,9 @@ from unittest.mock import MagicMock
 
 import pydantic
 import pytest
-import RATapi
+import ratapi
 from PyQt6 import QtCore, QtWidgets
-from RATapi.utils.enums import Languages
+from ratapi.utils.enums import Languages
 
 import rascal2.widgets.delegates as delegates
 from rascal2.widgets.project.tables import (
@@ -42,7 +42,7 @@ class DataModel(pydantic.BaseModel, validate_assignment=True):
 @pytest.fixture
 def classlist():
     """A test ClassList."""
-    return RATapi.ClassList(
+    return ratapi.ClassList(
         [
             DataModel(name="A", value=1),
             DataModel(name="B", value=6),
@@ -60,9 +60,9 @@ def table_model(classlist):
 @pytest.fixture
 def param_classlist():
     def _classlist(protected_indices):
-        return RATapi.ClassList(
+        return ratapi.ClassList(
             [
-                RATapi.models.ProtectedParameter(name=str(i)) if i in protected_indices else RATapi.models.Parameter()
+                ratapi.models.ProtectedParameter(name=str(i)) if i in protected_indices else ratapi.models.Parameter()
                 for i in [0, 1, 2]
             ]
         )
@@ -72,11 +72,11 @@ def param_classlist():
 
 @pytest.fixture
 def domains_classlist():
-    return RATapi.ClassList(
+    return ratapi.ClassList(
         [
-            RATapi.models.DomainContrast(name="A", model=["LA"]),
-            RATapi.models.DomainContrast(name="B", model=["LB", "LB2", "LB3"]),
-            RATapi.models.DomainContrast(name="C", model=["LC", "LC2"]),
+            ratapi.models.DomainContrast(name="A", model=["LA"]),
+            ratapi.models.DomainContrast(name="B", model=["LB", "LB2", "LB3"]),
+            ratapi.models.DomainContrast(name="C", model=["LC", "LC2"]),
         ]
     )
 
@@ -291,42 +291,42 @@ def test_hidden_bayesian_columns(param_classlist):
 
 def test_layer_model_init():
     """Test that LayersModels have the correct absorption value based on the initial input."""
-    init_list = RATapi.ClassList()
-    init_list._class_handle = RATapi.models.Layer
+    init_list = ratapi.ClassList()
+    init_list._class_handle = ratapi.models.Layer
 
     model = LayersModel(init_list, parent)
     assert not model.absorption
 
-    init_list._class_handle = RATapi.models.AbsorptionLayer
+    init_list._class_handle = ratapi.models.AbsorptionLayer
     model = LayersModel(init_list, parent)
     assert model.absorption
 
 
 def test_layer_model_append():
     """Test that LayersModels appends the correct item based on absorption value."""
-    init_list = RATapi.ClassList()
-    init_list._class_handle = RATapi.models.Layer
+    init_list = ratapi.ClassList()
+    init_list._class_handle = ratapi.models.Layer
     model = LayersModel(init_list, parent)
     model.parent = MagicMock()
 
     model.append_item()
 
-    assert isinstance(model.classlist[0], RATapi.models.Layer)
+    assert isinstance(model.classlist[0], ratapi.models.Layer)
 
     del model.classlist[0]
     model.set_absorption(True)
     model.append_item()
 
-    assert isinstance(model.classlist[0], RATapi.models.AbsorptionLayer)
+    assert isinstance(model.classlist[0], ratapi.models.AbsorptionLayer)
 
 
 def test_layer_model_set_absorption():
     """Test that the layer model layers are converted when set_absorption is called."""
-    init_list = RATapi.ClassList(
+    init_list = ratapi.ClassList(
         [
-            RATapi.models.Layer(name="A", thickness="AT", SLD="AS", roughness="AR", hydrate_with="bulk in"),
-            RATapi.models.Layer(name="B", thickness="BT", SLD="BS", roughness="BR"),
-            RATapi.models.Layer(name="C", thickness="CT", SLD="CS", roughness="CR", hydration="CH"),
+            ratapi.models.Layer(name="A", thickness="AT", SLD="AS", roughness="AR", hydrate_with="bulk in"),
+            ratapi.models.Layer(name="B", thickness="BT", SLD="BS", roughness="BR"),
+            ratapi.models.Layer(name="C", thickness="CT", SLD="CS", roughness="CR", hydration="CH"),
         ]
     )
 
@@ -335,7 +335,7 @@ def test_layer_model_set_absorption():
 
     model.set_absorption(True)
     for expected, actual in zip(init_list, model.classlist):
-        assert isinstance(actual, RATapi.models.AbsorptionLayer)
+        assert isinstance(actual, ratapi.models.AbsorptionLayer)
         assert expected.name == actual.name
         assert expected.thickness == actual.thickness
         assert expected.SLD == actual.SLD_real  # noqa: SIM300  (false positive)
@@ -354,18 +354,18 @@ def test_layer_model_set_absorption():
 @pytest.mark.parametrize(
     "init_list",
     [
-        RATapi.ClassList(
+        ratapi.ClassList(
             [
-                RATapi.models.Layer(thickness="AT", SLD="AS", roughness="AR"),
-                RATapi.models.Layer(thickness="BT", SLD="BS", roughness="BR"),
-                RATapi.models.Layer(thickness="CT", SLD="CS", roughness="CR"),
+                ratapi.models.Layer(thickness="AT", SLD="AS", roughness="AR"),
+                ratapi.models.Layer(thickness="BT", SLD="BS", roughness="BR"),
+                ratapi.models.Layer(thickness="CT", SLD="CS", roughness="CR"),
             ]
         ),
-        RATapi.ClassList(
+        ratapi.ClassList(
             [
-                RATapi.models.AbsorptionLayer(thickness="AT", SLD_real="AS", SLD_imaginary="ASI", roughness="AR"),
-                RATapi.models.AbsorptionLayer(thickness="BT", SLD_real="BS", SLD_imaginary="BSI", roughness="BR"),
-                RATapi.models.AbsorptionLayer(thickness="CT", SLD_real="CS", SLD_imaginary="CSI", roughness="CR"),
+                ratapi.models.AbsorptionLayer(thickness="AT", SLD_real="AS", SLD_imaginary="ASI", roughness="AR"),
+                ratapi.models.AbsorptionLayer(thickness="BT", SLD_real="BS", SLD_imaginary="BSI", roughness="BR"),
+                ratapi.models.AbsorptionLayer(thickness="CT", SLD_real="CS", SLD_imaginary="CSI", roughness="CR"),
             ]
         ),
     ],
@@ -410,10 +410,10 @@ def test_domains_widget_item_delegates(domains_classlist):
 
 def test_file_model_filename_data():
     """Tests the display data for the CustomFileModel `filename` field is as expected."""
-    init_list = RATapi.ClassList(
+    init_list = ratapi.ClassList(
         [
-            RATapi.models.CustomFile(filename="myfile.m", path="/home/user/"),
-            RATapi.models.CustomFile(filename="", path="/"),
+            ratapi.models.CustomFile(filename="myfile.m", path=Path(".").resolve()),
+            ratapi.models.CustomFile(filename="", path="/"),
         ]
     )
 
@@ -426,7 +426,7 @@ def test_file_model_filename_data():
 
     model.edit_mode = True
 
-    assert Path(model.data(model.index(0, filename_col))) == Path("/home/user/myfile.m")
+    assert Path(model.data(model.index(0, filename_col))) == (Path(".") / "myfile.m").resolve()
     assert model.data(model.index(1, filename_col)) == "Browse..."
 
 
@@ -442,20 +442,17 @@ def test_file_model_filename_data():
 )
 def test_file_model_set_filename(filename, expected_lang, expected_filenames):
     """Test the custom file row autocompletes when a filename is set."""
-    init_list = RATapi.ClassList([RATapi.models.CustomFile(filename="", path="/")])
-
+    init_list = ratapi.ClassList([ratapi.models.CustomFile(filename="", path=".")])
     python_file = "def func1(): pass \ndef func2(): pass \ndef func3(): pass"
 
     model = CustomFileModel(init_list, parent)
 
     filename_col = model.headers.index("filename") + 1
-
     with tempfile.TemporaryDirectory() as tmp:
         Path(tmp, "myfile.py").write_text(python_file)
         filepath = Path(tmp, filename)
         model.setData(model.index(0, filename_col), filepath)
-
-        assert model.classlist[0].path == Path(tmp)
+        assert model.classlist[0].path == Path(tmp).resolve()
         assert model.classlist[0].filename == filename
         assert model.classlist[0].language == expected_lang
 
@@ -470,7 +467,7 @@ def test_file_widget_edit(filename):
 
     with tempfile.TemporaryDirectory() as tmp:
         Path(tmp, "file.py").touch()
-        init_list = RATapi.ClassList([RATapi.models.CustomFile(filename="")])
+        init_list = ratapi.ClassList([ratapi.models.CustomFile(filename="")])
 
         widget = CustomFileWidget("files", parent)
         widget.update_model(init_list)
@@ -513,7 +510,7 @@ def test_file_widget_edit(filename):
 )
 def test_background_disable_values(background_type, disabled_vals):
     """Test that unnecessary values are disabled in the Background model."""
-    classlist = RATapi.ClassList(RATapi.models.Background(name="Background", type=background_type))
+    classlist = ratapi.ClassList(ratapi.models.Background(name="Background", type=background_type))
 
     model = BackgroundsModel(classlist, parent)
 
@@ -534,7 +531,7 @@ def test_background_disable_values(background_type, disabled_vals):
 )
 def test_resolution_disable_values(resolution_type, disabled_vals):
     """Test that unnecessary values are disabled in the Background model."""
-    classlist = RATapi.ClassList(RATapi.models.Resolution(name="Resolution", type=resolution_type))
+    classlist = ratapi.ClassList(ratapi.models.Resolution(name="Resolution", type=resolution_type))
 
     model = ResolutionsModel(classlist, parent)
 

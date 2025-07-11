@@ -4,7 +4,7 @@ from abc import abstractmethod
 from inspect import isclass
 from typing import Optional, Union
 
-import RATapi
+import ratapi
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -42,11 +42,11 @@ class PlotWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    def update_plots(self, project: RATapi.Project, results: RATapi.outputs.Results | RATapi.outputs.BayesResults):
+    def update_plots(self, project: ratapi.Project, results: ratapi.outputs.Results | ratapi.outputs.BayesResults):
         """Update the plot widget to match the parent model."""
         self.reflectivity_plot.plot(project, results)
         self.bayes_plots_dialog.results_outdated = True
-        self.bayes_plots_button.setVisible(isinstance(results, RATapi.outputs.BayesResults))
+        self.bayes_plots_button.setVisible(isinstance(results, ratapi.outputs.BayesResults))
 
     def plot_event(self, event):
         """Handle plot event data."""
@@ -210,14 +210,14 @@ class AbstractPlotWidget(QtWidgets.QWidget):
         return Figure()
 
     @abstractmethod
-    def plot(self, project: RATapi.Project, results: Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]):
+    def plot(self, project: ratapi.Project, results: Union[ratapi.outputs.Results, ratapi.outputs.BayesResults]):
         """Plot from the current project and results.
 
         Parameters
         ----------
-        problem : RATapi.Project
+        problem : ratapi.Project
             The project.
-        results : Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]
+        results : Union[ratapi.outputs.Results, ratapi.outputs.BayesResults]
             The calculation results.
 
         """
@@ -278,39 +278,39 @@ class RefSLDWidget(AbstractPlotWidget):
 
         return figure
 
-    def plot(self, project: RATapi.Project, results: Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]):
+    def plot(self, project: ratapi.Project, results: Union[ratapi.outputs.Results, ratapi.outputs.BayesResults]):
         """Plots the reflectivity and SLD profiles.
 
         Parameters
         ----------
-        project : RATapi.Project
+        project : ratapi.Project
             The project
-        results : Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]
+        results : Union[ratapi.outputs.Results, ratapi.outputs.BayesResults]
             The calculation results.
         """
         if project is None or results is None:
             self.clear()
             return
 
-        data = RATapi.events.PlotEventData()
+        data = ratapi.events.PlotEventData()
 
         data.modelType = project.model
         data.reflectivity = results.reflectivity
         data.shiftedData = results.shiftedData
         data.sldProfiles = results.sldProfiles
         data.resampledLayers = results.resampledLayers
-        data.dataPresent = RATapi.inputs.make_data_present(project)
+        data.dataPresent = ratapi.inputs.make_data_present(project)
         data.subRoughs = results.contrastParams.subRoughs
-        data.resample = RATapi.inputs.make_resample(project)
+        data.resample = ratapi.inputs.make_resample(project)
         data.contrastNames = [contrast.name for contrast in project.contrasts]
         self.plot_event(data)
 
-    def plot_event(self, data: Optional[RATapi.events.PlotEventData] = None):
+    def plot_event(self, data: Optional[ratapi.events.PlotEventData] = None):
         """Updates the ref and SLD plots from a provided or cached plot event
 
         Parameters
         ----------
-        data : Optional[RATapi.events.PlotEventData]
+        data : Optional[ratapi.events.PlotEventData]
             plot event data, cached data is used if none is provided
         """
 
@@ -321,7 +321,7 @@ class RefSLDWidget(AbstractPlotWidget):
             return
 
         show_legend = self.show_legend.isChecked() if self.current_plot_data.contrastNames else False
-        RATapi.plotting.plot_ref_sld_helper(
+        ratapi.plotting.plot_ref_sld_helper(
             self.current_plot_data,
             self.figure,
             delay=False,
@@ -369,7 +369,7 @@ class ContourPlotWidget(AbstractPlotWidget):
 
         return control_layout
 
-    def plot(self, _, results: RATapi.outputs.BayesResults):
+    def plot(self, _, results: ratapi.outputs.BayesResults):
         """Plot the contour for two parameters."""
         fit_params = results.fitNames
         self.results = results
@@ -410,7 +410,7 @@ class ContourPlotWidget(AbstractPlotWidget):
         smooth = self.smooth_checkbox.checkState() == QtCore.Qt.CheckState.Checked
 
         if x_param != "" and y_param != "":
-            RATapi.plotting.plot_contour(self.results, x_param, y_param, smooth, axes=self.figure.axes[0])
+            ratapi.plotting.plot_contour(self.results, x_param, y_param, smooth, axes=self.figure.axes[0])
             self.canvas.draw()
 
 
@@ -494,7 +494,7 @@ class CornerPlotWidget(AbstractPanelPlotWidget):
         if plot_params:
             self.plot_running_label.setVisible(True)
 
-            fig = RATapi.plotting.plot_corner(self.results, params=plot_params, smooth=smooth, return_fig=True)
+            fig = ratapi.plotting.plot_corner(self.results, params=plot_params, smooth=smooth, return_fig=True)
             self.canvas.figure = fig
             self.canvas.draw()
 
@@ -539,7 +539,7 @@ class HistPlotWidget(AbstractPanelPlotWidget):
         est_dens = self.est_density_combobox.currentData()
 
         if plot_params:
-            fig = RATapi.plotting.plot_hists(
+            fig = ratapi.plotting.plot_hists(
                 self.results,
                 params=plot_params,
                 smooth=smooth,
@@ -582,6 +582,6 @@ class ChainPlotWidget(AbstractPanelPlotWidget):
         maxpoints = self.maxpoints_box.value()
 
         if plot_params:
-            fig = RATapi.plotting.plot_chain(self.results, params=plot_params, maxpoints=maxpoints, return_fig=True)
+            fig = ratapi.plotting.plot_chain(self.results, params=plot_params, maxpoints=maxpoints, return_fig=True)
             self.canvas.figure = fig
             self.canvas.draw()

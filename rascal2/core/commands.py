@@ -4,9 +4,9 @@ import copy
 from enum import IntEnum, unique
 from typing import Callable, Union
 
-import RATapi
+import ratapi
 from PyQt6 import QtGui
-from RATapi import ClassList
+from ratapi import ClassList
 
 
 @unique
@@ -105,9 +105,9 @@ class SaveCalculationOutputs(QtGui.QUndoCommand):
 
     Parameters
     ----------
-    problem : RATapi.rat_core.ProblemDefinition
+    problem : ratapi.rat_core.ProblemDefinition
         The updated parameter values from a RAT run
-    results : Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]
+    results : Union[ratapi.outputs.Results, ratapi.outputs.BayesResults]
         The calculation results.
     log : str
         log text from the given calculation.
@@ -117,8 +117,8 @@ class SaveCalculationOutputs(QtGui.QUndoCommand):
 
     def __init__(
         self,
-        problem: RATapi.rat_core.ProblemDefinition,
-        results: Union[RATapi.outputs.Results, RATapi.outputs.BayesResults],
+        problem: ratapi.rat_core.ProblemDefinition,
+        results: Union[ratapi.outputs.Results, ratapi.outputs.BayesResults],
         log: str,
         presenter,
     ):
@@ -127,17 +127,17 @@ class SaveCalculationOutputs(QtGui.QUndoCommand):
         self.results = results
         self.log = log
         self.problem = self.get_parameter_values(problem)
-        self.old_problem = self.get_parameter_values(RATapi.inputs.make_problem(self.presenter.model.project))
+        self.old_problem = self.get_parameter_values(ratapi.inputs.make_problem(self.presenter.model.project))
         self.old_results = copy.deepcopy(self.presenter.model.results)
         self.old_log = self.presenter.model.result_log
         self.setText("Save calculation results")
 
-    def get_parameter_values(self, problem: RATapi.rat_core.ProblemDefinition):
+    def get_parameter_values(self, problem: ratapi.rat_core.ProblemDefinition):
         """Gets updated parameter values from problem definition.
 
         Parameters
         ----------
-        problem : RATapi.rat_core.ProblemDefinition
+        problem : ratapi.rat_core.ProblemDefinition
             The updated parameter values from a RAT run.
 
         Returns
@@ -156,7 +156,7 @@ class SaveCalculationOutputs(QtGui.QUndoCommand):
         }
 
         values = {}
-        for class_list in RATapi.project.parameter_class_lists:
+        for class_list in ratapi.project.parameter_class_lists:
             entry = values.setdefault(class_list, [])
             entry.extend(getattr(problem, parameter_field[class_list]))
         return values
@@ -181,17 +181,17 @@ class SaveCalculationOutputs(QtGui.QUndoCommand):
 
     def update_calculation_outputs(
         self,
-        problem: RATapi.rat_core.ProblemDefinition,
-        results: Union[RATapi.outputs.Results, RATapi.outputs.BayesResults],
+        problem: ratapi.rat_core.ProblemDefinition,
+        results: Union[ratapi.outputs.Results, ratapi.outputs.BayesResults],
         log: str,
     ):
         """Updates the project, results and log in the main window model
 
         Parameters
         ----------
-        problem : RATapi.rat_core.ProblemDefinition
+        problem : ratapi.rat_core.ProblemDefinition
             The updated parameter values from a RAT run
-        results : Union[RATapi.outputs.Results, RATapi.outputs.BayesResults]
+        results : Union[ratapi.outputs.Results, ratapi.outputs.BayesResults]
             The calculation results.
         log : str
             log text from the given calculation.

@@ -4,9 +4,9 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-from RATapi import Controls, Project, Results
-from RATapi.outputs import CalculationResults, ContrastParams
-from RATapi.utils.enums import Calculations
+from ratapi import Controls, Project, Results
+from ratapi.outputs import CalculationResults, ContrastParams
+from ratapi.utils.enums import Calculations
 
 from rascal2.ui.model import MainWindowModel
 from tests.utils import check_results_equal
@@ -92,7 +92,7 @@ def test_load_project(empty_results):
     check_results_equal(model.results, empty_results)
 
 
-@patch("RATapi.utils.convert.r1_to_project")
+@patch("ratapi.utils.convert.r1_to_project")
 def test_load_r1_project(mock_r1_class):
     """load_r1_project should call the conversion function and set the path correctly."""
     model = MainWindowModel()

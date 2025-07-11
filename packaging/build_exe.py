@@ -1,6 +1,8 @@
+import os
 import pathlib
 import shutil
 import sys
+import warnings
 
 import PyInstaller.__main__ as pyi
 
@@ -56,6 +58,7 @@ IS_MAC = sys.platform == "darwin"
 
 def build_exe():
     """Builds the executable for the rascal-2 application"""
+    os.environ["DELAY_MATLAB_START"] = "1"
     work_path = PACKAGING_PATH / "temp"
     dist_path = PACKAGING_PATH / "bundle"
     main_path = PROJECT_PATH / "rascal2" / "main.py"
@@ -112,6 +115,25 @@ def build_exe():
 
     if IS_MAC:
         shutil.rmtree(PACKAGING_PATH / "bundle" / "app" / "rascal")
+
+    if IS_WINDOWS:
+        with open(PACKAGING_PATH / "windows" / "version.nsh", "w") as ver_file:
+            from rascal2 import RASCAL2_VERSION
+
+            ver_file.write(f'!define VERSION "{RASCAL2_VERSION}"')
+
+    arch_path = dist_path / "bin" / "_internal" / "matlab" / "engine" / "_arch.txt"
+    warnings.warn(
+        f"MATLAB engine arch file ({arch_path}) was not found. Ignore this if you don't plan to use MATLAB",
+        stacklevel=2,
+    )
+    if arch_path.exists():
+        open(dist_path / "bin" / "_internal" / "matlab" / "engine" / "_arch.txt", "w").close()
+    else:
+        warnings.warn(
+            f"MATLAB engine arch file ({arch_path}) was not found. Ignore if you don't plan to use MATLAB",
+            stacklevel=1,
+        )
 
     print("RasCAL-2 built with no errors!\n")
 

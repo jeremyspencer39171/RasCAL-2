@@ -4,9 +4,10 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 from rascal2.config import get_logger, path_for, setup_logging, setup_settings
 from rascal2.core.enums import UnsavedReply
-from rascal2.core.settings import MDIGeometries, Settings
+from rascal2.dialogs.matlab_setup_dialog import MatlabSetupDialog
 from rascal2.dialogs.settings_dialog import SettingsDialog
 from rascal2.dialogs.startup_dialog import PROJECT_FILES, LoadDialog, LoadR1Dialog, NewProjectDialog, StartupDialog
+from rascal2.settings import MDIGeometries, Settings
 from rascal2.widgets import ControlsWidget, PlotWidget, TerminalWidget
 from rascal2.widgets.project import ProjectWidget
 from rascal2.widgets.startup import StartUpWidget
@@ -185,6 +186,10 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.clear_terminal_action.setStatusTip("Clear text in the terminal")
         self.clear_terminal_action.triggered.connect(self.terminal_widget.clear)
 
+        self.setup_matlab_action = QtGui.QAction("Setup MATLAB", self)
+        self.setup_matlab_action.setStatusTip("Set the path of the MATLAB executable")
+        self.setup_matlab_action.triggered.connect(self.open_matlab_setup)
+
     def create_menus(self):
         """Creates the main menu and sub menus"""
         self.main_menu = self.menuBar()
@@ -219,11 +224,18 @@ class MainWindowView(QtWidgets.QMainWindow):
         self.windows_menu.setEnabled(False)
         self.disabled_elements.append(self.windows_menu)
 
-        terminal_menu = self.main_menu.addMenu("&Terminal")
-        terminal_menu.addAction(self.clear_terminal_action)
+        tools_menu = self.main_menu.addMenu("&Tools")
+        tools_menu.addAction(self.clear_terminal_action)
+        tools_menu.addSeparator()
+        tools_menu.addAction(self.setup_matlab_action)
 
         help_menu = self.main_menu.addMenu("&Help")
         help_menu.addAction(self.open_help_action)
+
+    def open_matlab_setup(self):
+        """Opens the MATLAB setup dialog"""
+        dialog = MatlabSetupDialog(self)
+        dialog.show()
 
     def open_docs(self):
         """Opens the documentation"""

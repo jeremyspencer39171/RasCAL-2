@@ -8,6 +8,11 @@
 build/
 *.egg-info/
 packaging/bundle/
+packaging/temp/
+packaging/linux/*.run
+packaging/windows/*.exe
+packaging/windows/*.nsh
+packaging/macos/*.dmg
 
 # Unit test / coverage reports
 htmlcov/

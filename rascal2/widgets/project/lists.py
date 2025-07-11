@@ -4,9 +4,9 @@ from itertools import count
 from pathlib import Path
 from typing import Any, Callable, Generic, TypeVar
 
-import RATapi
+import ratapi
 from PyQt6 import QtCore, QtGui, QtWidgets
-from RATapi.utils.enums import BackgroundActions, LayerModels
+from ratapi.utils.enums import BackgroundActions, LayerModels
 
 from rascal2.config import path_for
 from rascal2.core.readers import readers
@@ -28,7 +28,7 @@ class ClassListItemModel(QtCore.QAbstractListModel, Generic[T]):
 
     """
 
-    def __init__(self, classlist: RATapi.ClassList[T], parent: QtWidgets.QWidget):
+    def __init__(self, classlist: ratapi.ClassList[T], parent: QtWidgets.QWidget):
         super().__init__(parent)
         self.parent = parent
 
@@ -155,7 +155,7 @@ class AbstractProjectListWidget(QtWidgets.QWidget):
 
         Parameters
         ----------
-        classlist: RATapi.ClassList
+        classlist: ratapi.ClassList
             The classlist to set in the model.
 
         """
@@ -415,7 +415,7 @@ class ContrastModel(ClassListItemModel):
 
     def __init__(self, classlist, parent):
         super().__init__(classlist, parent)
-        self.domains = classlist._class_handle == RATapi.models.ContrastWithRatio
+        self.domains = classlist._class_handle == ratapi.models.ContrastWithRatio
         self.domain_ratios = {}
 
     def set_domains(self, domains: bool):
@@ -431,23 +431,23 @@ class ContrastModel(ClassListItemModel):
             self.beginResetModel()
             self.domains = domains
             if domains:
-                classlist = RATapi.ClassList(
+                classlist = ratapi.ClassList(
                     [
-                        RATapi.models.ContrastWithRatio(
+                        ratapi.models.ContrastWithRatio(
                             **dict(contrast), domain_ratio=self.domain_ratios.get(contrast.name, "")
                         )
                         for contrast in self.classlist
                     ]
                 )
                 # set handle manually if classlist is empty
-                classlist._class_handle = RATapi.models.ContrastWithRatio
+                classlist._class_handle = ratapi.models.ContrastWithRatio
             else:
                 # save domain ratios so they aren't lost if the user toggles
                 # back and forth
                 self.domain_ratios = {contrast.name: contrast.domain_ratio for contrast in self.classlist}
-                classlist = RATapi.ClassList(
+                classlist = ratapi.ClassList(
                     [
-                        RATapi.models.Contrast(
+                        ratapi.models.Contrast(
                             name=contrast.name,
                             data=contrast.data,
                             background=contrast.background,
@@ -463,7 +463,7 @@ class ContrastModel(ClassListItemModel):
                     ]
                 )
                 # set handle manually if classlist is empty
-                classlist._class_handle = RATapi.models.Contrast
+                classlist._class_handle = ratapi.models.Contrast
 
             self.classlist = classlist
             self.item_type = classlist._class_handle

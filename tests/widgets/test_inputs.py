@@ -1,6 +1,9 @@
 """Test input widgets."""
 
-from enum import StrEnum
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
 
 import pytest
 from pydantic.fields import FieldInfo

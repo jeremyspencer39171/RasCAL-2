@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from nexusformat.nexus import nxload
 from orsopy.fileio import load_orso
-from RATapi.models import Data
+from ratapi.models import Data
 
 
 class AbstractDataReader(ABC):

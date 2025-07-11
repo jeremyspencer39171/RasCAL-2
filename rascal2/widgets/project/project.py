@@ -3,11 +3,11 @@
 from collections.abc import Generator
 from copy import deepcopy
 
-import RATapi
+import ratapi
 from pydantic import ValidationError
 from PyQt6 import QtCore, QtGui, QtWidgets
-from RATapi.utils.custom_errors import custom_pydantic_validation_error
-from RATapi.utils.enums import Calculations, Geometries, LayerModels
+from ratapi.utils.custom_errors import custom_pydantic_validation_error
+from ratapi.utils.enums import Calculations, Geometries, LayerModels
 
 from rascal2.config import path_for
 from rascal2.widgets.project.lists import ContrastWidget, DataWidget
@@ -508,7 +508,7 @@ class ProjectWidget(QtWidgets.QWidget):
         self.edit_project_button.setEnabled(enabled)
         for tab_name, tab_items in self.tabs.items():
             for table in tab_items:
-                if table in RATapi.project.parameter_class_lists:
+                if table in ratapi.project.parameter_class_lists:
                     self.view_tabs[tab_name].tables[table].setEnabled(enabled)
 
 
@@ -535,7 +535,7 @@ class ProjectTabWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout()
         for field in self.fields:
-            if field in RATapi.project.parameter_class_lists:
+            if field in ratapi.project.parameter_class_lists:
                 self.tables[field] = ParameterFieldWidget(field, self)
             elif field == "backgrounds":
                 self.tables[field] = BackgroundsFieldWidget(field, self)
@@ -587,17 +587,17 @@ class ProjectTabWidget(QtWidgets.QWidget):
 
     def handle_controls_update(self, controls):
         """Reflect changes to the Controls object."""
-        for field in RATapi.project.parameter_class_lists:
+        for field in ratapi.project.parameter_class_lists:
             if field in self.tables:
                 self.tables[field].handle_bayesian_columns(controls.procedure)
 
 
-def create_draft_project(project: RATapi.Project) -> dict:
+def create_draft_project(project: ratapi.Project) -> dict:
     """Create a draft project (dictionary of project attributes) from a Project.
 
     Parameters
     ----------
-    project : RATapi.Project
+    project : ratapi.Project
         The project to create a draft from.
 
     Returns
@@ -612,10 +612,10 @@ def create_draft_project(project: RATapi.Project) -> dict:
     # will point towards project.parameters.append (???) and so on
 
     draft_project = {}
-    for field in RATapi.Project.model_fields:
+    for field in ratapi.Project.model_fields:
         attr = getattr(project, field)
-        if isinstance(attr, RATapi.ClassList):
-            draft_project[field] = RATapi.ClassList(deepcopy(attr.data))
+        if isinstance(attr, ratapi.ClassList):
+            draft_project[field] = ratapi.ClassList(deepcopy(attr.data))
             draft_project[field]._class_handle = getattr(project, field)._class_handle
         else:
             draft_project[field] = attr

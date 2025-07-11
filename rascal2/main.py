@@ -5,7 +5,7 @@ from contextlib import suppress
 
 from PyQt6 import QtGui, QtWidgets
 
-from rascal2.config import IMAGES_PATH, STATIC_PATH, handle_scaling, log_uncaught_exceptions, path_for
+from rascal2.config import IMAGES_PATH, MATLAB_HELPER, STATIC_PATH, handle_scaling, log_uncaught_exceptions, path_for
 from rascal2.ui.view import MainWindowView
 
 
@@ -42,7 +42,9 @@ def ui_execute():
 def main():
     multiprocessing.freeze_support()
     sys.excepthook = log_uncaught_exceptions
+    MATLAB_HELPER.async_start()
     exit_code = ui_execute()
+    MATLAB_HELPER.shutdown()
     sys.exit(exit_code)
 
 

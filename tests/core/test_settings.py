@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rascal2.core.settings import Settings, delete_local_settings, update_recent_projects
+from rascal2.settings import Settings, delete_local_settings, update_recent_projects
 
 
 class MockGlobalSettings:
@@ -27,7 +27,7 @@ def mock_get_global_settings():
     return MockGlobalSettings()
 
 
-@patch("rascal2.core.settings.get_global_settings", new=mock_get_global_settings)
+@patch("rascal2.settings.get_global_settings", new=mock_get_global_settings)
 def test_global_defaults():
     """Test that settings are overwritten by global settings only if not manually set."""
     default_set = Settings()
@@ -55,7 +55,7 @@ def test_delete_local_settings():
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"style": "light", "editor_fontsize": 15}, {"terminal_fontsize": 8}])
-@patch("rascal2.core.settings.get_global_settings", new=mock_get_global_settings)
+@patch("rascal2.settings.get_global_settings", new=mock_get_global_settings)
 def test_save(kwargs):
     """Tests that settings files can be saved and retrieved."""
     settings = Settings(**kwargs)
@@ -72,7 +72,7 @@ def test_save(kwargs):
     assert settings == loaded_settings
 
 
-@patch("rascal2.core.settings.QtCore.QSettings.setValue")
+@patch("rascal2.settings.QtCore.QSettings.setValue")
 def test_set_global(mock):
     """Test that we can set manually-set project settings as global settings."""
     settings = Settings()
@@ -98,7 +98,7 @@ def test_set_global(mock):
         (["proj1", "proj2", "proj3"], "proj2", ["proj2", "proj1", "proj3"]),
     ),
 )
-@patch("rascal2.core.settings.QtCore.QSettings.setValue")
+@patch("rascal2.settings.QtCore.QSettings.setValue")
 def test_update_recent_projects(set_val_mock, recent_projects, path, expected):
     """The recent projects should be updated to be newest to oldest with no deleted projects."""
     with tempfile.TemporaryDirectory() as temp:
@@ -108,7 +108,7 @@ def test_update_recent_projects(set_val_mock, recent_projects, path, expected):
         recent_projects = [str(Path(temp, proj)) for proj in recent_projects]
         expected = [str(Path(temp, proj)) for proj in expected]
 
-        with patch("rascal2.core.settings.QtCore.QSettings.value", return_value=recent_projects):
+        with patch("rascal2.settings.QtCore.QSettings.value", return_value=recent_projects):
             if path is not None:
                 assert expected == update_recent_projects(str(Path(temp, path)))
             else:
