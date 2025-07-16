@@ -233,7 +233,7 @@ class MainWindowPresenter:
             case rat.events.ProgressEventData():
                 self.view.terminal_widget.update_progress(event)
             case rat.events.PlotEventData():
-                self.view.plot_widget.plot_event(event)
+                self.view.plot_widget.plot_with_blit(event)
             case LogData():
                 self.view.logging.log(event.level, event.msg)
 
