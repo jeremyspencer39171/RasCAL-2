@@ -80,15 +80,15 @@ class MatlabSetupDialog(QtWidgets.QDialog):
 
             path_file.truncate(0)
 
-            if platform.system() == "Windows":
-                path_file.writelines(
-                    [
-                        "win64\n",
-                        str(install_dir / "bin/win64\n"),
-                        str(install_dir / "extern/engines/python/dist/matlab/engine/win64\n"),
-                        str(install_dir / "extern/bin/win64\n"),
-                    ]
-                )
+            arch = "win64" if platform.system() == "Windows" else "glnxa64"
+            path_file.writelines(
+                [
+                    f"{arch}\n",
+                    str(install_dir / f"bin/{arch}\n"),
+                    str(install_dir / f"extern/engines/python/dist/matlab/engine/{arch}\n"),
+                    str(install_dir / f"extern/bin/{arch}\n"),
+                ]
+            )
         if should_init:
             MATLAB_HELPER.async_start()
 
