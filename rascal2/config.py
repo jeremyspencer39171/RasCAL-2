@@ -2,11 +2,11 @@ import logging
 import os
 
 os.environ["DELAY_MATLAB_START"] = "1"
+import multiprocessing as mp
 import pathlib
 import platform
 import site
 import sys
-from multiprocessing import Event, Manager, Process
 
 from rascal2.settings import Settings, get_global_settings
 
@@ -205,8 +205,8 @@ class MatlabHelper:
 
     def __init__(self):
         self.error = ""
-        self.ready_event = Event()
-        self.close_event = Event()
+        self.ready_event = mp.Event()
+        self.close_event = mp.Event()
         self.engine_output = None
 
         self.__engine = None
@@ -215,9 +215,9 @@ class MatlabHelper:
         """Start MATLAB on a new process"""
         if not self.get_matlab_path():
             return
-        self.manager = Manager()
+        self.manager = mp.Manager()
         self.engine_output = self.manager.list()
-        self.process = Process(
+        self.process = mp.Process(
             target=run_matlab,
             args=(
                 self.ready_event,
@@ -230,7 +230,8 @@ class MatlabHelper:
 
     def shutdown(self):
         """Set close event to the MATLAB run function"""
-        self.ready_event.wait(timeout=60)
+        if not self.engine_output:
+            self.ready_event.wait(timeout=60)
         self.close_event.set()
 
     def get_local_engine(self):
@@ -276,4 +277,5 @@ class MatlabHelper:
         return str(install_dir)
 
 
+mp.set_start_method("spawn", force=True)
 MATLAB_HELPER = MatlabHelper()
