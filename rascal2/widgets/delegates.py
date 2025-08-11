@@ -11,10 +11,11 @@ from rascal2.widgets.inputs import AdaptiveDoubleSpinBox, MultiSelectComboBox, g
 class ValidatedInputDelegate(QtWidgets.QStyledItemDelegate):
     """Item delegate for validated inputs."""
 
-    def __init__(self, field_info, parent, remove_items: list[int] = None):
+    def __init__(self, field_info, parent, remove_items: list[int] = None, open_on_show: bool = False):
         super().__init__(parent)
         self.table = parent
         self.field_info = field_info
+        self.open_on_show = open_on_show
 
         # this parameter is mostly just a hacky thing to remove function resolutions
         self.remove_items = remove_items
@@ -28,10 +29,19 @@ class ValidatedInputDelegate(QtWidgets.QStyledItemDelegate):
             for item in self.remove_items:
                 widget.editor.removeItem(item)
 
+        if self.open_on_show:
+            widget.editor.open_on_show = True
+            widget.editor.text_changed.connect(self.commit_and_close_editor)
+
         self.widget = widget
         # Using the BaseInputWidget directly did not style properly,
         # this uses the editor widget while holding a reference to BaseInputWidget.
         return widget.editor
+
+    def commit_and_close_editor(self):
+        editor = self.sender()
+        self.commitData.emit(editor)
+        self.closeEditor.emit(editor)
 
     def setEditorData(self, _editor: QtWidgets.QWidget, index):
         data = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
@@ -53,7 +63,7 @@ class CustomFileFunctionDelegate(QtWidgets.QStyledItemDelegate):
         func_names = self.widget.model.func_names[
             index.siblingAtColumn(index.column() - 1).data(QtCore.Qt.ItemDataRole.DisplayRole)
         ]
-        # we define the methods set_data and get_date
+        # we define the methods set_data and get_data
         # so that setEditorData and setModelData don't need
         # to know what kind of widget the editor is
         if func_names is None:

@@ -419,7 +419,7 @@ def test_file_model_filename_data():
 
     model = CustomFileModel(init_list, parent)
 
-    filename_col = model.headers.index("filename") + 1
+    filename_col = model.headers.index("filename") + model.col_offset
 
     assert model.data(model.index(0, filename_col)) == "myfile.m"
     assert model.data(model.index(1, filename_col)) == ""
@@ -447,7 +447,7 @@ def test_file_model_set_filename(filename, expected_lang, expected_filenames):
 
     model = CustomFileModel(init_list, parent)
 
-    filename_col = model.headers.index("filename") + 1
+    filename_col = model.headers.index("filename") + model.col_offset
     with tempfile.TemporaryDirectory() as tmp:
         Path(tmp, "myfile.py").write_text(python_file)
         filepath = Path(tmp, filename)
@@ -472,7 +472,7 @@ def test_file_widget_edit(filename):
         widget = CustomFileWidget("files", parent)
         widget.update_model(init_list)
 
-        edit_col = widget.model.columnCount() - 1
+        edit_col = 1
         assert widget.table.isColumnHidden(edit_col)
 
         widget.edit()
@@ -481,7 +481,7 @@ def test_file_widget_edit(filename):
 
         if filename != "":
             widget.model.setData(
-                widget.model.index(0, widget.model.headers.index("filename") + 1),
+                widget.model.index(0, widget.model.headers.index("filename") + widget.model.col_offset),
                 Path(tmp, filename),
             )
 

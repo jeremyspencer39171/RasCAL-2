@@ -54,12 +54,11 @@ jobs:
           cd packaging/linux
           chmod 777 "build_installer.sh"
           mkdir build
-          if [ ${{ github.ref_name }} == "master" ]; then
+          if [ ${{ github.ref_name }} == "main" ]; then
             ./build_installer.sh --remote
           else
             ./build_installer.sh --remote --tag $GITHUB_REF_NAME
           fi
-          ./build_installer.sh --remote
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:

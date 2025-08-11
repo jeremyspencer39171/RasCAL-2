@@ -165,23 +165,44 @@ class EnumInputWidget(BaseInputWidget):
         return editor
 
 
+class PathWidget(QtWidgets.QLabel):
+    """Custom widget for file paths."""
+
+    text_changed = QtCore.pyqtSignal()
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.open_on_show = False
+        self.setAutoFillBackground(True)
+
+    def mouseDoubleClickEvent(self, event):
+        self.open()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if self.open_on_show:
+            self.open()
+            self.open_on_show = False
+
+    def open(self):
+        file_dialog = QtWidgets.QFileDialog(parent=self)
+        file = file_dialog.getOpenFileName()[0]
+        if file:
+            self.setText(file)
+        self.text_changed.emit()
+
+
 class PathInputWidget(BaseInputWidget):
     """Input widget for paths."""
 
-    edit_signal = "pressed"
+    edit_signal = "text_changed"
+
+    def __init__(self, field_info: FieldInfo, parent=None):
+        super().__init__(field_info, parent)
 
     def create_editor(self, field_info: FieldInfo) -> QtWidgets.QWidget:
-        file_dialog = QtWidgets.QFileDialog(parent=self)
-
-        def open_file():
-            file = file_dialog.getOpenFileName()[0]
-            if file:
-                browse_button.setText(file)
-
-        browse_button = QtWidgets.QPushButton("Browse...", self)
-        browse_button.clicked.connect(lambda: open_file())
-
-        return browse_button
+        return PathWidget(self)
 
 
 class AdaptiveDoubleSpinBox(QtWidgets.QDoubleSpinBox):

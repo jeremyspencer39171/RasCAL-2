@@ -39,6 +39,7 @@ class ClassListTableModel(QtCore.QAbstractTableModel):
 
         self.setup_classlist(classlist)
         self.edit_mode = False
+        self.col_offset = 1
 
     def setup_classlist(self, classlist: ratapi.ClassList):
         """Setup the ClassList, type and headers for the model."""
@@ -53,7 +54,7 @@ class ClassListTableModel(QtCore.QAbstractTableModel):
         return len(self.classlist)
 
     def columnCount(self, parent=None) -> int:
-        return len(self.headers) + 1
+        return len(self.headers) + self.col_offset
 
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         param = self.index_header(index)
@@ -98,9 +99,9 @@ class ClassListTableModel(QtCore.QAbstractTableModel):
         if (
             orientation == QtCore.Qt.Orientation.Horizontal
             and role == QtCore.Qt.ItemDataRole.DisplayRole
-            and section != 0
+            and section >= self.col_offset
         ):
-            header = self.headers[section - 1]
+            header = self.headers[section - self.col_offset]
             if "SLD" in header:
                 header = header.replace("_", " ")
             else:
@@ -140,9 +141,9 @@ class ClassListTableModel(QtCore.QAbstractTableModel):
 
         """
         col = index.column()
-        if col == 0:
+        if col < self.col_offset:
             return None
-        return self.headers[col - 1]
+        return self.headers[col - self.col_offset]
 
 
 class ProjectFieldWidget(QtWidgets.QWidget):
@@ -170,9 +171,7 @@ class ProjectFieldWidget(QtWidgets.QWidget):
         self.parent = parent
         self.project_widget = parent.parent
         self.table = QtWidgets.QTableView(parent)
-        self.table.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding
-        )
+        self.table.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
 
         layout = QtWidgets.QVBoxLayout()
@@ -190,6 +189,35 @@ class ProjectFieldWidget(QtWidgets.QWidget):
         layout.addWidget(self.table)
         self.setLayout(layout)
 
+    def resizeEvent(self, event):
+        self.resize_columns()
+        super().resizeEvent(event)
+
+    def resize_columns(self):
+        """Resize the columns of the tableview to avoid truncating content"""
+        header = self.table.horizontalHeader()
+        main_col = "filename" if self.model.headers[1] == "filename" else "name"
+        index = self.model.headers.index(main_col) + self.model.col_offset
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Fixed)
+        if self.model.headers[0] == "fit" or self.model.headers[1] == "filename":
+            header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
+
+        total_unstretch_width = 0
+        for i in range(0, self.model.columnCount()):
+            if i != index:
+                header.setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeMode.Interactive)
+                self.table.resizeColumnToContents(i)
+                total_unstretch_width += self.table.columnWidth(i)
+
+        # 6 is fudge value to account for content being smaller than table by few pixels
+        width = self.table.width() - total_unstretch_width - 6
+        header.setSectionResizeMode(index, QtWidgets.QHeaderView.ResizeMode.Interactive)
+        self.table.resizeColumnToContents(index)
+        content_width = self.table.columnWidth(index)
+        width = width if width > content_width else content_width
+        self.table.setColumnWidth(index, width)
+
     def update_model(self, classlist):
         """Update the table model to synchronise with the project field."""
         self.model = self.classlist_model(classlist, self)
@@ -198,17 +226,19 @@ class ProjectFieldWidget(QtWidgets.QWidget):
         self.model.dataChanged.connect(lambda: self.edited.emit())
         self.model.modelReset.connect(lambda: self.edited.emit())
         self.table.hideColumn(0)
-        self.set_item_delegates()
-        header = self.table.horizontalHeader()
+        if self.model.headers[1] == "filename":
+            self.table.hideColumn(1)
 
-        header.setSectionResizeMode(self.model.headers.index("name") + 1, QtWidgets.QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        self.set_item_delegates()
+
+        self.resize_columns()
 
     def set_item_delegates(self):
         """Set item delegates and open persistent editors for the table."""
         for i, header in enumerate(self.model.headers):
             self.table.setItemDelegateForColumn(
-                i + 1, delegates.ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table)
+                i + self.model.col_offset,
+                delegates.ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table),
             )
 
     def append_item(self):
@@ -242,6 +272,7 @@ class ProjectFieldWidget(QtWidgets.QWidget):
         self.set_item_delegates()
         for i in range(0, self.model.rowCount()):
             self.table.setIndexWidget(self.model.index(i, 0), self.make_delete_button(i))
+        self.resize_columns()
 
     def make_delete_button(self, index):
         """Make a button that deletes index `index` from the list."""
@@ -482,18 +513,11 @@ class CustomFileModel(ClassListTableModel):
         super().__init__(classlist, parent)
         self.func_names = {}
         self.headers.remove("path")
-
-    def columnCount(self, parent=None) -> int:
-        return super().columnCount() + 1
-
-    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
-        if section == self.columnCount() - 1:
-            return None
-        return super().headerData(section, orientation, role)
+        self.col_offset = 2
 
     def flags(self, index):
         flags = super().flags(index)
-        if index.column() in [0, self.columnCount() - 1]:
+        if index.column() in [1, self.columnCount()]:
             return QtCore.Qt.ItemFlag.NoItemFlags
         if self.edit_mode:
             flags |= QtCore.Qt.ItemFlag.ItemIsEditable
@@ -502,14 +526,14 @@ class CustomFileModel(ClassListTableModel):
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         data = super().data(index, role)
         if role == QtCore.Qt.ItemDataRole.DisplayRole and self.index_header(index) == "filename" and self.edit_mode:
-            if data == "":
+            if data == "" or data == "Browse...":
                 return "Browse..."
             return str(self.classlist[index.row()].path / data)
 
         return data
 
     def setData(self, index, value, role=QtCore.Qt.ItemDataRole.DisplayRole):
-        if self.index_header(index) == "filename":
+        if self.index_header(index) == "filename" and value != "Browse...":
             file_path = Path(value)
             row = index.row()
             self.classlist[row].path = file_path.parent
@@ -551,22 +575,13 @@ class CustomFileModel(ClassListTableModel):
         self.classlist.append(self.item_type(filename="", path="/"))
         self.endResetModel()
 
-    def index_header(self, index):
-        if index.column() == self.columnCount() - 1:
-            return None
-        return super().index_header(index)
-
 
 class CustomFileWidget(ProjectFieldWidget):
     classlist_model = CustomFileModel
 
-    def update_model(self, classlist):
-        super().update_model(classlist)
-        self.table.hideColumn(self.model.columnCount() - 1)
-
     def edit(self):
         super().edit()
-        edit_file_column = self.model.columnCount() - 1
+        edit_file_column = 1
         self.table.showColumn(edit_file_column)
         # disconnect from old table's buttons so they don't create dangling references
         # if no connections currently exist (i.e. table empty), disconnect() raises a TypeError
@@ -574,6 +589,7 @@ class CustomFileWidget(ProjectFieldWidget):
             self.model.dataChanged.disconnect()
         for i in range(0, self.model.rowCount()):
             self.table.setIndexWidget(self.model.index(i, edit_file_column), self.make_edit_button(i))
+        self.resize_columns()
 
     def make_edit_button(self, index):
         button = QtWidgets.QPushButton("Edit File", self.table)
@@ -594,7 +610,9 @@ class CustomFileWidget(ProjectFieldWidget):
 
         def setup_button():
             """Check whether the button should be editable and set it up for the right language."""
-            language = self.model.data(self.model.index(index, self.model.headers.index("language") + 1))
+            language = self.model.data(
+                self.model.index(index, self.model.headers.index("language") + self.model.col_offset)
+            )
             with contextlib.suppress(TypeError):
                 button.pressed.disconnect()
             if language == Languages.Matlab:
@@ -611,7 +629,8 @@ class CustomFileWidget(ProjectFieldWidget):
                 )
 
             editable = (language in [Languages.Matlab, Languages.Python]) and (
-                self.model.data(self.model.index(index, self.model.headers.index("filename") + 1)) != "Browse..."
+                self.model.data(self.model.index(index, self.model.headers.index("filename") + self.model.col_offset))
+                != "Browse..."
             )
             button.setEnabled(editable)
 
@@ -622,10 +641,18 @@ class CustomFileWidget(ProjectFieldWidget):
 
     def set_item_delegates(self):
         super().set_item_delegates()
-        filename_index = self.model.headers.index("filename") + 1
-        function_index = self.model.headers.index("function_name") + 1
+        """Set item delegates and open persistent editors for the table."""
+        for i, header in enumerate(self.model.headers):
+            self.table.setItemDelegateForColumn(
+                i + self.model.col_offset,
+                delegates.ValidatedInputDelegate(self.model.item_type.model_fields[header], self.table),
+            )
+
+        filename_index = self.model.headers.index("filename") + self.model.col_offset
+        function_index = self.model.headers.index("function_name") + self.model.col_offset
         self.table.setItemDelegateForColumn(
-            filename_index, delegates.ValidatedInputDelegate(self.model.item_type.model_fields["path"], self.table)
+            filename_index,
+            delegates.ValidatedInputDelegate(self.model.item_type.model_fields["path"], self.table, open_on_show=True),
         )
         self.table.setItemDelegateForColumn(function_index, delegates.CustomFileFunctionDelegate(self))
 
