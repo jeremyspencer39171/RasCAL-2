@@ -89,9 +89,9 @@ mkdir "$TMP_DIR/rascal"
 if [ -n "$REMOTE" ]; then
   echo "Downloading RasCAL-2 from remote repo"
   if [ -n "$TAG" ]; then
-    RASCAL_URL="https://github.com/RascalSoftware/RasCAL-2/archive/${TAG}.tar.gz"
+    RASCAL_URL="https://github.com/jeremyspencer39171/RasCAL-2/archive/${TAG}.tar.gz"
   else
-    RASCAL_URL="https://github.com/RascalSoftware/RasCAL-2/tarball/main"
+    RASCAL_URL="https://github.com/jeremyspencer39171/RasCAL-2/tarball/main"
   fi
 
   wget $RASCAL_URL -O "$TMP_DIR/rascal.tar.gz"
