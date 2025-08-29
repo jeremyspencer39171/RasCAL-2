@@ -14,7 +14,6 @@ echo ""
 echo "Welcome to the RasCAL-2 Installer"
 echo ""
 
-INSTALL_EXAMPLES="y"
 INSTALL_EDITOR="n"
 
 # Create destination folder
@@ -37,36 +36,56 @@ else
     fi
 fi
 
-# Show License
-more < "./rascal/LICENSE"
+ACCEPT=0
+PASSED_INSTALL_DIR=0
+INSTALL_EXAMPLES="?"
 
-while true
-do
-  echo ""
-  echo "Do you accept all of the terms of the preceding license agreement? (y/n):"
-  read -r REPLY
-  REPLY=$(echo "$REPLY" | tr '[:upper:]' '[:lower:]')
-  if [[ "$REPLY" != y && "$REPLY" != n ]]; then
-      echo "        <Please answer y for yes or n for no>" > /dev/tty
-  fi
-
-  if [ "$REPLY" == y ]; then
-      break
-  fi
-
-  if [ "$REPLY" == n ]; then
-      echo "Aborting installation"
-      exit 1
-  fi
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --accept) ACCEPT=1 ;;
+        --install-dir) INSTALL_DIR="$2"; PASSED_INSTALL_DIR=1; shift ;;
+        --install-examples) INSTALL_EXAMPLES="y" ;;
+        --matlab) MATLAB_PATH="$2"; shift ;;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
 done
 
-echo ""
-echo "Please enter the directory to install in
-(The default is \"$INSTALL_DIR\")"
-read -r DIR_NAME
 
-if [ "$DIR_NAME" != "" ]; then
-    INSTALL_DIR=$DIR_NAME
+if [[ $ACCEPT != 1 ]]; then
+  # Show License
+  more < "./rascal/LICENSE"
+
+  while true
+  do
+    echo ""
+    echo "Do you accept all of the terms of the preceding license agreement? (y/n):"
+    read -r REPLY
+    REPLY=$(echo "$REPLY" | tr '[:upper:]' '[:lower:]')
+    if [[ "$REPLY" != y && "$REPLY" != n ]]; then
+        echo "        <Please answer y for yes or n for no>" > /dev/tty
+    fi
+  
+    if [ "$REPLY" == y ]; then
+        break
+    fi
+  
+    if [ "$REPLY" == n ]; then
+        echo "Aborting installation"
+        exit 1
+    fi
+  done
+fi
+
+if [[ $PASSED_INSTALL_DIR != 1 ]]; then
+  echo ""
+  echo "Please enter the directory to install in
+  (The default is \"$INSTALL_DIR\")"
+  read -r DIR_NAME
+
+  if [ "$DIR_NAME" != "" ]; then
+      INSTALL_DIR=$DIR_NAME
+  fi
 fi
 
 if [[ -d "$INSTALL_DIR" && "$(ls -A "$INSTALL_DIR")" != "" ]]; then
@@ -103,11 +122,15 @@ if [ ! -d  "$INSTALL_DIR" ]; then
   fi
 fi
 
-echo ""
-echo "Install example projects? (y/n) [$INSTALL_EXAMPLES]: "
-read -r INSTALL_FLAG
-if [ "$INSTALL_FLAG" != "" ]; then
-    INSTALL_EXAMPLES=$INSTALL_FLAG
+if [[ $INSTALL_EXAMPLES != "y" ]]; then
+  echo ""
+  echo "Install example projects? (y/n) [$INSTALL_EXAMPLES]: "
+  read -r INSTALL_FLAG
+  if [ "$INSTALL_FLAG" != "" ]; then
+      INSTALL_EXAMPLES=$INSTALL_FLAG
+  else
+      INSTALL_EXAMPLES="y"
+  fi
 fi
 
 echo ""
@@ -137,10 +160,12 @@ chown -R "$USER:$GROUP" "$INSTALL_DIR"
 
 ARCH_FILE="$INSTALL_DIR/bin/_internal/matlab/engine/_arch.txt"
 if [ -f "$ARCH_FILE" ]; then
-  echo ""
-  echo "Specify MATLAB directory (Optional) i.e. \"/usr/local/MATLAB/R2023a\"
+  if [ -z ${MATLAB_PATH+x} ]; then
+    echo ""
+    echo "Specify MATLAB directory (Optional) i.e. \"/usr/local/MATLAB/R2023a\"
 (Min supported version is R2023a, leave empty to skip MATLAB setup)"
-  read -r MATLAB_PATH
+    read -r MATLAB_PATH
+  fi
   if [ "$MATLAB_PATH" != "" ]; then
       MATLAB_INSTALL_PATH=$MATLAB_PATH/bin/glnxa64
       MATLAB_ENGINE_PATH=$MATLAB_PATH/extern/engines/python/dist/matlab/engine/glnxa64
