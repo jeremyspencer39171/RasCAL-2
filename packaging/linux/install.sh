@@ -51,6 +51,8 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+echo "Accept is set to: "
+echo $ACCEPT
 
 if [[ $ACCEPT != 1 ]]; then
   # Show License
